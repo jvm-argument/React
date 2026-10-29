@@ -242,7 +242,7 @@ public class React {
                 "punishments.yml",
                 "history.yml",
                 "inference.yml",
-                "vector.yml",
+                "checks/vector.yml",
                 "database.yml",
                 "database/h2.yml",
                 "database/mysql.yml",
