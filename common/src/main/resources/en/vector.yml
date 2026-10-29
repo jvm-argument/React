@@ -1,0 +1,19 @@
+#
+# React - AI-Powered Anti-Cheat
+#
+# Plugin source code: https://github.com/g4vrk/React
+# (The AI model is not included in this project)
+#
+# Purchase access to our model -> https://www.react-ac.space/
+#
+
+# Frames sent in one request.
+# If you use our model, keep 64.
+sequence: 64
+
+# How often a request is sent, in frames.
+# If you use our model, keep 32.
+step: 32
+
+# Combat window in ticks during which frames are collected.
+combat-ticks: 64

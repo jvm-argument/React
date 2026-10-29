@@ -8,11 +8,6 @@
 # Purchase access to our model -> https://www.react-ac.space/
 #
 
-# Number of rotations required before sending them for analysis.
-buffer:
-  size: 40
-  send-step: 10
-
 # Probability threshold above which a player is considered to be cheating
 alert:
   threshold: 0.90

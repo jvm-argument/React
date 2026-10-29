@@ -10,21 +10,9 @@
 # Включить ИИ сервер?
 enabled: true
 
-# FLOWER: JSON протокол, настройки буфера в checks/aim-ai.yml.
-# UNIVERSE: бинарный протокол, настройки в секции "universe" ниже.
-model: FLOWER
-
-universe:
-  # Кадров в запросе и как часто отправлять запрос (в кадрах).
-  sequence: 64
-  step: 32
-  # Окно боя в тиках, независимо от времени боя FLOWER.
-  combat-ticks: 64
-
 inference:
   endpoint:
     base-url: 'https://api.react-ac.space'
-    path: '/api/v2/inference/'
 
 auth:
   enabled: true

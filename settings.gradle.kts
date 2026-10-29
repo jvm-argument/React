@@ -5,8 +5,7 @@ include(
     "paper",
     "folia",
     "kits",
-    "auth",
-    "server"
+    "auth"
 )
 
 dependencyResolutionManagement {

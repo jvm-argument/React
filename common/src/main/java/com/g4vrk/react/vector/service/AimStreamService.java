@@ -2,7 +2,6 @@ package com.g4vrk.react.vector.service;
 
 import com.g4vrk.react.React;
 import com.g4vrk.react.check.impl.aim.AimAI;
-import com.g4vrk.react.inference.InferenceModel;
 import com.g4vrk.react.player.CombatTargets;
 import com.g4vrk.react.player.ReactPlayer;
 import com.g4vrk.react.player.registry.PlayerRegistry;
@@ -68,19 +67,7 @@ public final class AimStreamService {
     ) {
         final Subscription subscription = new Subscription(interested, consumer);
         subscriptions.add(subscription);
-        return () -> {
-            subscriptions.remove(subscription);
-            for (final ReactPlayer player : players.all()) {
-                refresh(player.getUniqueId());
-            }
-        };
-    }
-
-    public void refresh(final @NotNull UUID uuid) {
-        final ReactPlayer player = players.getPlayer(uuid);
-        if (player != null && React.INSTANCE.getInferenceServer(uuid).getModel() != InferenceModel.UNIVERSE) {
-            player.universeData.clearHistory();
-        }
+        return () -> subscriptions.remove(subscription);
     }
 
     private void onPacket(
@@ -137,7 +124,7 @@ public final class AimStreamService {
     }
 
     private long combatTicks() {
-        return Math.max(1L, React.INSTANCE.getInferenceConfig().node("universe", "combat-ticks").getLong(64L));
+        return Math.max(1L, React.INSTANCE.getVectorConfig().node("combat-ticks").getLong(64L));
     }
 
     private void capture(
@@ -160,9 +147,7 @@ public final class AimStreamService {
             if (player == null) {
                 return;
             }
-            if (React.INSTANCE.getInferenceServer(uuid).getModel() == InferenceModel.UNIVERSE) {
-                recordFrame(player, data, frame);
-            }
+            recordFrame(player, data, frame);
         }
         if (data.isCurrent(state)) {
             notifySubscribers(player, frame);
@@ -212,7 +197,7 @@ public final class AimStreamService {
         data.push(frame);
         final AimAI check = (AimAI) player.checkManager.getRotationCheck(AimAI.class);
         if (check != null) {
-            check.onUniverseFrame();
+            check.onVectorFrame();
         }
     }
 

@@ -9,7 +9,6 @@ import org.jetbrains.annotations.NotNull;
 import org.spongepowered.configurate.ConfigurationNode;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import com.g4vrk.react.inference.InferenceModel;
 
 public class InferenceSettingsFactory {
 
@@ -23,8 +22,6 @@ public class InferenceSettingsFactory {
         final ConfigurationNode inferenceNode = root.node("inference");
 
         final InferenceEndpointSettings endpoint = parseEndpoint(inferenceNode.node("endpoint"));
-        final InferenceRequestSettings request = parseRequest(inferenceNode.node("request"));
-        final InferenceResponseSettings response = parseResponse(inferenceNode.node("response"));
 
         final AuthSettings auth = parseAuth(root.node("auth"));
 
@@ -40,38 +37,14 @@ public class InferenceSettingsFactory {
                 connectionPool,
                 enabled,
                 endpoint,
-                request,
-                response,
-                auth,
-                InferenceModel.parse(root.node("model").getString(
-                        inferenceNode.node("endpoint", "model-family").getString("FLOWER")))
+                auth
         );
     }
 
     private @NotNull InferenceEndpointSettings parseEndpoint(
             final @NotNull ConfigurationNode endpointNode
     ) {
-        final String baseUrl = endpointNode.node("base-url").getString("http://localhost:8080");
-        final String path = normalizePath(endpointNode.node("path").getString("/api/v1/inference/"));
-
-        return new InferenceEndpointSettings(baseUrl, path);
-    }
-
-    private @NotNull InferenceRequestSettings parseRequest(
-            final @NotNull ConfigurationNode requestNode
-    ) {
-        return new InferenceRequestSettings(
-                requestNode.node("player-name-field").getString("name"),
-                requestNode.node("rotations-field").getString("frames")
-        );
-    }
-
-    private @NotNull InferenceResponseSettings parseResponse(
-            final @NotNull ConfigurationNode responseNode
-    ) {
-        return new InferenceResponseSettings(
-                responseNode.node("probability-field").getString("cheat_probability")
-        );
+        return new InferenceEndpointSettings(endpointNode.node("base-url").getString("http://localhost:8080"));
     }
 
     private @NotNull AuthSettings parseAuth(
@@ -121,17 +94,4 @@ public class InferenceSettingsFactory {
         );
     }
 
-    private @NotNull String normalizePath(final @NotNull String rawPath) {
-        String path = rawPath.trim();
-
-        if (path.isEmpty()) {
-            return "/";
-        }
-
-        if (!path.startsWith("/")) {
-            path = "/" + path;
-        }
-
-        return path;
-    }
 }

@@ -5,7 +5,6 @@ import okhttp3.HttpUrl;
 import okhttp3.Request;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
 
 public final class AuthApplier {
 
@@ -21,21 +20,6 @@ public final class AuthApplier {
         return settings.isEnabled() && settings.getType() != AuthType.NONE;
     }
 
-    public void applyToPayload(
-            final @NotNull Map<String, Object> payload
-    ) {
-        if (!isActive() || settings.getType() != AuthType.BODY) {
-            return;
-        }
-
-        final String field = settings.getBodyField();
-
-        if (field.isBlank()) {
-            return;
-        }
-
-        payload.put(field, settings.getValue());
-    }
 
     public void applyToHeaders(final @NotNull Request.Builder builder) {
         if (!isActive()) {

@@ -23,14 +23,11 @@ import com.g4vrk.react.command.argument.impl.VerboseArgument;
 import com.g4vrk.react.command.builder.CommandBuilderFactory;
 import com.g4vrk.react.config.check.CheckConfigRegistry;
 import com.g4vrk.react.config.check.impl.SimpleCheckConfigRegistry;
-import com.g4vrk.react.check.processor.rotation.RotationFactory;
-import com.g4vrk.react.check.processor.rotation.RotationProcessor;
 import com.g4vrk.react.config.lang.Language;
 import com.g4vrk.react.config.manager.YamlConfigManager;
 import com.g4vrk.react.history.printer.InferenceHistoryPrinter;
 import com.g4vrk.react.listeners.bukkit.CombatListener;
 import com.g4vrk.react.listeners.bukkit.ConnectionListener;
-import com.g4vrk.react.listeners.packet.RotationListener;
 import com.g4vrk.react.listeners.packet.UniverseListener;
 import com.g4vrk.react.inference.aim.InferenceAimProcessor;
 import com.g4vrk.react.inference.server.InferenceServer;
@@ -128,6 +125,7 @@ public class React {
     private Config punishmentsConfig;
     private Config historyConfig;
     private Config inferenceConfig;
+    private Config vectorConfig;
 
     private DatabaseSettings databaseSettings;
     private StorageManager storageManager;
@@ -137,11 +135,6 @@ public class React {
     private SchedulaAPI schedulaAPI;
 
     private InferenceServer inferenceServer;
-    private final com.g4vrk.react.inference.PlayerModelRouter playerModelRouter = new com.g4vrk.react.inference.PlayerModelRouter();
-
-    public InferenceServer getInferenceServer(java.util.UUID playerId) {
-        return playerModelRouter.server(playerId);
-    }
 
     private InferenceSettingsFactory inferenceSettingsFactory;
 
@@ -249,6 +242,7 @@ public class React {
                 "punishments.yml",
                 "history.yml",
                 "inference.yml",
+                "vector.yml",
                 "database.yml",
                 "database/h2.yml",
                 "database/mysql.yml",
@@ -276,6 +270,7 @@ public class React {
         this.punishmentsConfig = Objects.requireNonNull(configMap.get("punishments.yml"));
         this.historyConfig = Objects.requireNonNull(configMap.get("history.yml"));
         this.inferenceConfig = Objects.requireNonNull(configMap.get("inference.yml"));
+        this.vectorConfig = Objects.requireNonNull(configMap.get("vector.yml"));
 
         logger.info("Successfully loaded {} configurations: {}", this.configMap.size(), String.join(", ", this.configMap.keySet()));
 
@@ -366,8 +361,7 @@ public class React {
 
         logger.info("Registering packet listeners...");
         this.registerPacketListeners(
-                new UniverseListener(playerRegistry, universeService),
-                new RotationListener(playerRegistry, new RotationProcessor(new RotationFactory()))
+                new UniverseListener(playerRegistry, universeService)
         );
 
         final PluginManager pluginManager = plugin.getServer().getPluginManager();
@@ -404,7 +398,7 @@ public class React {
                     plugin.getDescription().getVersion(),
                     playerRegistry,
                     offlinePlayer -> inferenceServer == null ? "Unavailable" :
-                            (offlinePlayer == null ? inferenceServer : getInferenceServer(offlinePlayer.getUniqueId())).getSelectedModelDisplay()
+                            inferenceServer.getSelectedModelDisplay()
             );
 
             this.placeholderExpansion.register();
@@ -454,6 +448,7 @@ public class React {
         this.punishmentsConfig = Objects.requireNonNull(configMap.get("punishments.yml"));
         this.historyConfig = Objects.requireNonNull(configMap.get("history.yml"));
         this.inferenceConfig = Objects.requireNonNull(configMap.get("inference.yml"));
+        this.vectorConfig = Objects.requireNonNull(configMap.get("vector.yml"));
 
         this.alertsArgument.reload();
         this.verboseArgument.reload();
@@ -461,8 +456,7 @@ public class React {
 
         final InferenceSettings inferenceSettings = inferenceSettingsFactory.create(inferenceConfig.root());
 
-        final boolean modelChanged = this.inferenceServer.getModel() != inferenceSettings.getModel()
-                || !this.inferenceServer.getEndpoint().equals(inferenceSettings.getEndpoint());
+        final boolean endpointChanged = !this.inferenceServer.getEndpoint().equals(inferenceSettings.getEndpoint());
         this.inferenceServer.shutdown();
 
         this.inferenceServer = new InferenceServer(logger, inferenceSettings);
@@ -472,7 +466,6 @@ public class React {
         );
 
         this.punishmentManager.reload();
-        this.playerModelRouter.reload();
         this.inferenceHistoryPrinter.reload();
 
         this.playerFactory.reload();
@@ -483,7 +476,7 @@ public class React {
 
         for (final ReactPlayer player : this.playerRegistry.all()) {
 
-            if (modelChanged) {
+            if (endpointChanged) {
                 player.rotationData.clear();
                 player.universeData.clearHistory();
             }
@@ -496,7 +489,6 @@ public class React {
 
     public void terminate() {
         logger.info("Terminating the plugin...");
-        this.playerModelRouter.close();
 
         try {
             logger.info("Stopping all addons...");
@@ -561,6 +553,7 @@ public class React {
 
         this.mainConfig = null;
         this.inferenceConfig = null;
+        this.vectorConfig = null;
         this.schedulaAPI = null;
         this.inferenceAimProcessor = null;
         this.punishmentManager = null;

@@ -10,21 +10,9 @@
 # Enable the AI server?
 enabled: true
 
-# FLOWER: JSON protocol, buffer settings live in checks/aim-ai.yml.
-# UNIVERSE: binary protocol, settings are in the "universe" section below.
-model: FLOWER
-
-universe:
-  # Frames per request and how often a request is sent (in frames).
-  sequence: 64
-  step: 32
-  # Combat window in ticks, independent of FLOWER's combat time.
-  combat-ticks: 64
-
 inference:
   endpoint:
     base-url: 'https://api.react-ac.space'
-    path: '/api/v2/inference/'
 
 auth:
   enabled: true

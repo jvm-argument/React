@@ -30,7 +30,6 @@ public final class PlayerRegistry {
     ) {
         final ReactPlayer removed = players.remove(uuid);
         if (removed != null) {
-            React.INSTANCE.getPlayerModelRouter().release(uuid);
             removed.clearTransientState();
             if (React.INSTANCE.getUniverseService() != null) {
                 React.INSTANCE.getUniverseService().removePlayerData(uuid);

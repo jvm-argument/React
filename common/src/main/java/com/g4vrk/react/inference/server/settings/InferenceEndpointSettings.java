@@ -7,5 +7,5 @@ import org.jetbrains.annotations.NotNull;
 public class InferenceEndpointSettings {
 
     @NotNull String baseUrl;
-    @NotNull String path;
+
 }

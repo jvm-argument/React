@@ -5,8 +5,6 @@ import com.g4vrk.react.inference.auth.AuthSettings;
 import com.g4vrk.react.inference.auth.type.AuthType;
 import com.g4vrk.react.inference.http.model.HttpRequest;
 import com.g4vrk.react.inference.server.settings.InferenceEndpointSettings;
-import com.g4vrk.react.inference.server.settings.InferenceRequestSettings;
-import com.g4vrk.react.inference.server.settings.InferenceResponseSettings;
 import com.g4vrk.react.inference.server.settings.InferenceSettings;
 import lombok.Getter;
 import okhttp3.Cache;
@@ -24,31 +22,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.squareup.moshi.Moshi;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import com.g4vrk.react.inference.InferenceModel;
 
 @Getter
 public final class InferenceServer {
+
+    private static final String PATH = "/api/v2/inference/";
 
     private final OkHttpClient client;
     private final AuthApplier authApplier;
 
     private final String baseUrl;
     private final InferenceEndpointSettings endpoint;
-    private final InferenceRequestSettings requestSettings;
-    private final InferenceResponseSettings responseSettings;
 
     private final boolean enabled;
-    private final InferenceModel model;
     private final String authBodyToken;
     private final String modelMetadataToken;
     private final AtomicLong nextModelMetadataRequest = new AtomicLong();
     private volatile String selectedModelDisplay = "Unavailable";
-    private String playerModelDisplay;
 
-    public InferenceServer(Logger logger, InferenceSettings settings, String playerModelDisplay) {
-        this(logger, settings);
-        this.playerModelDisplay = playerModelDisplay;
-    }
     private final AtomicBoolean suspended = new AtomicBoolean();
     private final AtomicBoolean closed = new AtomicBoolean();
     private final AtomicLong requestEpoch = new AtomicLong();
@@ -80,14 +71,11 @@ public final class InferenceServer {
     ) {
         this.client = settings.buildClient();
         this.enabled = settings.isEnabled();
-        this.model = settings.getModel();
         this.modelMetadataToken = settings.getAuth().isEnabled() ? settings.getAuth().getValue() : null;
         this.authBodyToken = settings.getAuth().isEnabled() && settings.getAuth().getType() == AuthType.BODY
                 ? settings.getAuth().getValue() : null;
 
         this.endpoint = settings.getEndpoint();
-        this.requestSettings = settings.getRequest();
-        this.responseSettings = settings.getResponse();
 
         this.baseUrl = normalizeUrl(endpoint.getBaseUrl());
         this.authApplier = new AuthApplier(settings.getAuth());
@@ -100,7 +88,6 @@ public final class InferenceServer {
     /** Nonblocking display metadata, resolved from the same subscription as inference. */
     public String getSelectedModelDisplay() {
         if (!enabled) return "Disabled";
-        if (playerModelDisplay != null) return playerModelDisplay;
         long now = System.currentTimeMillis();
         long next = nextModelMetadataRequest.get();
         if (now >= next && nextModelMetadataRequest.compareAndSet(next, now + 60_000L)) {
@@ -157,13 +144,13 @@ public final class InferenceServer {
             final @NotNull HttpRequest httpRequest
     ) {
         if (!isAcceptingRequests()) throw new IllegalStateException("Inference client is paused or closed");
-        final String rawUrl = baseUrl + endpoint.getPath();
+        final String rawUrl = baseUrl + PATH;
         final HttpUrl parsedUrl = HttpUrl.parse(rawUrl);
 
         if (parsedUrl == null) {
             throw new IllegalStateException(
                     "Invalid ML inference endpoint URL: '" + rawUrl + "'. " +
-                            "Check inference.endpoint.base-url and inference.endpoint.path"
+                            "Check inference.endpoint.base-url"
             );
         }
 
@@ -172,7 +159,6 @@ public final class InferenceServer {
         final Request.Builder requestBuilder = new Request.Builder()
                 .url(url)
                 .method(httpRequest.getMethod(), httpRequest.getBody());
-        if (playerModelDisplay != null) requestBuilder.header("X-React-Player-Scoped", "true");
 
         httpRequest.getHeaders().forEach(requestBuilder::header);
         authApplier.applyToHeaders(requestBuilder);
@@ -187,9 +173,6 @@ public final class InferenceServer {
         this.newCall(request).enqueue(callback);
     }
 
-    public void augmentPayload(final @NotNull Map<String, Object> payload) {
-        this.authApplier.applyToPayload(payload);
-    }
 
     public synchronized void shutdown() {
         closed.set(true);
@@ -220,10 +203,10 @@ public final class InferenceServer {
             final @NotNull Logger logger,
             final @NotNull AuthSettings auth
     ) {
-        if (HttpUrl.parse(baseUrl + endpoint.getPath()) == null) {
+        if (HttpUrl.parse(baseUrl + PATH) == null) {
             logger.warn(
                     "ML inference endpoint '{}{}' is not a valid URL, requests will fail",
-                    baseUrl, endpoint.getPath()
+                    baseUrl, PATH
             );
         }
 

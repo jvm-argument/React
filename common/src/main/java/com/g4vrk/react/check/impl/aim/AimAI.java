@@ -16,13 +16,11 @@ import com.g4vrk.react.history.entry.InferenceHistoryEntry;
 import com.g4vrk.react.inference.aim.InferenceAimProcessor;
 import com.g4vrk.react.inference.aim.InferenceResult;
 import com.g4vrk.react.player.ReactPlayer;
-import com.g4vrk.react.player.model.rotation.Rotation;
 import com.g4vrk.react.player.model.rotation.RotationData;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.atomic.AtomicBoolean;
-import com.g4vrk.react.inference.InferenceModel;
 import com.g4vrk.react.vector.model.AimFrame;
 import com.g4vrk.schedula.task.TickSchedule;
 import java.util.concurrent.atomic.AtomicLong;
@@ -44,7 +42,6 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
 
     private int sampleWindowSize;
     private int requestStep;
-    private int samplesSinceLastRequest;
     private double alertThreshold;
 
     private final AtomicBoolean requesting = new AtomicBoolean();
@@ -65,16 +62,10 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
     public void onReload(@NotNull Config config) {
 
         this.debug = config.node("debug").getBoolean();
-        final int legacyRequiredSamples = config.node("required-samples").getInt(40);
 
-        final boolean universe = React.INSTANCE.getInferenceServer(player.getUniqueId()).getModel()
-                == InferenceModel.UNIVERSE;
-        this.sampleWindowSize = universe
-                ? Math.max(1, React.INSTANCE.getInferenceConfig().node("universe", "sequence").getInt(64))
-                : Math.max(3, config.node("buffer", "size").getInt(legacyRequiredSamples));
-        this.requestStep = universe
-                ? Math.max(1, React.INSTANCE.getInferenceConfig().node("universe", "step").getInt(32))
-                : Math.max(1, config.node("buffer", "send-step").getInt(10));
+        final Config vectorConfig = React.INSTANCE.getVectorConfig();
+        this.sampleWindowSize = Math.max(1, vectorConfig.node("sequence").getInt(64));
+        this.requestStep = Math.max(1, vectorConfig.node("step").getInt(32));
         resetSamples();
         player.universeData.resize(this.sampleWindowSize);
         this.alertThreshold = config.node("alert", "threshold").getDouble(0.49D);
@@ -84,7 +75,7 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
         this.decayStrategy = new LinearDecay(decayAmount);
 
         this.inferenceAimProcessor = new InferenceAimProcessor(React.INSTANCE.getLogger(),
-                React.INSTANCE.getInferenceServer(player.getUniqueId()), React.INSTANCE.getScheduler());
+                React.INSTANCE.getInferenceServer(), React.INSTANCE.getScheduler());
 
     }
 
@@ -95,78 +86,15 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
 
     @Override
     public void onRotation(@NotNull RotationData currentData) {
-
-        if (React.INSTANCE.getInferenceServer(player.getUniqueId()).getModel() != InferenceModel.FLOWER
-                || !player.combatActivity.isActive() || !shouldCheck()) {
-            return;
-        }
-
-        if (currentData.historyCapacity() < sampleWindowSize) {
-            currentData.resizeHistory(sampleWindowSize);
-        }
-
-        samplesSinceLastRequest++;
-
-        if (currentData.historySize() < sampleWindowSize
-                || samplesSinceLastRequest < requestStep
-                || !requesting.compareAndSet(false, true)) {
-            return;
-        }
-
-        final Rotation[] history = currentData.snapshotHistory();
-
-        if (history.length < sampleWindowSize) {
-            requesting.set(false);
-            return;
-        }
-
-        samplesSinceLastRequest = 0;
-
-        final Rotation[] snapshot = new Rotation[sampleWindowSize];
-        System.arraycopy(
-                history,
-                history.length - sampleWindowSize,
-                snapshot,
-                0,
-                sampleWindowSize
-        );
-
-        if (debug) {
-            debugHandler.debug("Sending ML request (" + snapshot.length + " rotations)");
-        }
-
-        final long generation = requestGeneration.get();
-        final InferenceAimProcessor processor = inferenceAimProcessor;
-        final long clientEpoch = processor.requestEpoch();
-        try {
-            processor.check(
-                    player.getName(),
-                    snapshot,
-                    result -> {
-                        processor.publishIfCurrent(clientEpoch, () -> {
-                            if (requestGeneration.get() == generation) onServerResult(result);
-                        });
-                    }
-            );
-        } catch (final Throwable th) {
-            requesting.set(false);
-            React.INSTANCE.getLogger().warn(
-                    "Could not start ML request for {}",
-                    player.getName(),
-                    th
-            );
-        }
     }
 
     public void resetSamples() {
-        samplesSinceLastRequest = 0;
         requestGeneration.incrementAndGet();
         requesting.set(false);
     }
 
-    public void onUniverseFrame() {
-        if (React.INSTANCE.getInferenceServer(player.getUniqueId()).getModel() != InferenceModel.UNIVERSE
-                || !player.universeData.combatActivity.isActive() || !shouldCheck()) {
+    public void onVectorFrame() {
+        if (!player.universeData.combatActivity.isActive() || !shouldCheck()) {
             return;
         }
         player.universeData.resize(sampleWindowSize);
@@ -187,7 +115,7 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
                     }, TickSchedule.instant()));
         } catch (Throwable failure) {
             requesting.set(false);
-            React.INSTANCE.getLogger().warn("Could not start UNIVERSE request for {}", player.getName(), failure);
+            React.INSTANCE.getLogger().warn("Could not start VECTOR request for {}", player.getName(), failure);
         }
     }
 
@@ -228,7 +156,7 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
             final boolean flagged = Double.isFinite(result.getDecisionThreshold())
                     ? probability >= threshold : probability > threshold;
             if (!result.isEnforcementEnabled()) {
-                if (debug) debugHandler.debug("UNIVERSE observation: " + probability + ", threshold=" + threshold);
+                if (debug) debugHandler.debug("VECTOR observation: " + probability + ", threshold=" + threshold);
             } else if (flagged) {
 
                 if (debug) {
