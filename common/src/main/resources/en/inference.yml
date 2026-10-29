@@ -1,4 +1,3 @@
-
 #
 # React - AI-Powered Anti-Cheat
 #
@@ -11,76 +10,32 @@
 # Enable the AI server?
 enabled: true
 
-# FLOWER keeps its existing JSON protocol and checks/aim-ai.yml buffer settings.
-# UNIVERSE uses the GAIQ/GAIB binary protocol: 44 inputs, excluding dataset PING.
+# FLOWER: JSON protocol, buffer settings live in checks/aim-ai.yml.
+# UNIVERSE: binary protocol, settings are in the "universe" section below.
 model: FLOWER
 
 universe:
+  # Frames per request and how often a request is sent (in frames).
   sequence: 64
   step: 32
-  # UNIVERSE combat/collection window in ticks, independent of FLOWER's combat time.
+  # Combat window in ticks, independent of FLOWER's combat time.
   combat-ticks: 64
 
-# UNIVERSE schema v1 carries body authentication and observation-mode support.
-# Header, bearer and query authentication also use the settings below.
-
-# AI server settings
 inference:
-
-  # Inference endpoint used by the plugin.
   endpoint:
-
     base-url: 'https://api.react-ac.space'
-
     path: '/api/v2/inference/'
-    # The server selects the model from the subscription token.
 
-  # Only required for custom models
-  request:
-
-    player-name-field: name
-    rotations-field: frames
-
-  response:
-
-    probability-field: cheat_probability
-
-# Token authentication
 auth:
-
-  # Whether token authentication is enabled
   enabled: true
-
-  # Single authentication value used by the selected auth type.
+  # Token of your server from https://www.react-ac.space/
   value: YOUR_TOKEN
+  # Do not change when using our model: none / bearer / header / query / body
+  type: body
 
-  # Authentication method for custom AI models; do not change this when using our model
-  type: body # none / bearer / header / query / body
-
-  header:
-    name: X-Subscription-Token
-
-  query:
-    parameter: token
-
-  body:
-    field: token
-
-# HTTP client settings
 client:
-
   connect-timeout: 10s
-
   read-timeout: 10s
-
   write-timeout: 10s
-
   call-timeout: 10s
-
   retry-on-failure: true
-
-  connection-pool:
-
-    max-idle-connections: 5
-
-    keep-alive-duration: 5m
