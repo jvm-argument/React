@@ -8,6 +8,20 @@
 # Purchase access to our model -> https://www.react-ac.space/
 #
 
+# Frame buffer settings
+buffer:
+
+  # Frames sent in one request.
+  # If you use our model, keep 64.
+  sequence: 64
+
+  # How often a request is sent, in frames.
+  # If you use our model, keep 32.
+  step: 32
+
+# Combat window in ticks during which frames are collected.
+combat-ticks: 64
+
 # Probability threshold above which a player is considered to be cheating
 alert:
   threshold: 0.90

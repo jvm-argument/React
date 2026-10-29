@@ -125,7 +125,6 @@ public class React {
     private Config punishmentsConfig;
     private Config historyConfig;
     private Config inferenceConfig;
-    private Config vectorConfig;
 
     private DatabaseSettings databaseSettings;
     private StorageManager storageManager;
@@ -242,7 +241,6 @@ public class React {
                 "punishments.yml",
                 "history.yml",
                 "inference.yml",
-                "checks/vector.yml",
                 "database.yml",
                 "database/h2.yml",
                 "database/mysql.yml",
@@ -270,7 +268,6 @@ public class React {
         this.punishmentsConfig = Objects.requireNonNull(configMap.get("punishments.yml"));
         this.historyConfig = Objects.requireNonNull(configMap.get("history.yml"));
         this.inferenceConfig = Objects.requireNonNull(configMap.get("inference.yml"));
-        this.vectorConfig = Objects.requireNonNull(configMap.get("vector.yml"));
 
         logger.info("Successfully loaded {} configurations: {}", this.configMap.size(), String.join(", ", this.configMap.keySet()));
 
@@ -448,7 +445,6 @@ public class React {
         this.punishmentsConfig = Objects.requireNonNull(configMap.get("punishments.yml"));
         this.historyConfig = Objects.requireNonNull(configMap.get("history.yml"));
         this.inferenceConfig = Objects.requireNonNull(configMap.get("inference.yml"));
-        this.vectorConfig = Objects.requireNonNull(configMap.get("vector.yml"));
 
         this.alertsArgument.reload();
         this.verboseArgument.reload();
@@ -551,7 +547,6 @@ public class React {
 
         this.mainConfig = null;
         this.inferenceConfig = null;
-        this.vectorConfig = null;
         this.schedulaAPI = null;
         this.inferenceAimProcessor = null;
         this.punishmentManager = null;

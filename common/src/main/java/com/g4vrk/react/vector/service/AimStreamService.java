@@ -124,7 +124,7 @@ public final class AimStreamService {
     }
 
     private long combatTicks() {
-        return Math.max(1L, React.INSTANCE.getVectorConfig().node("combat-ticks").getLong(64L));
+        return Math.max(1L, React.INSTANCE.getCheckConfigRegistry().config(AimAI.class).node("combat-ticks").getLong(64L));
     }
 
     private void capture(
