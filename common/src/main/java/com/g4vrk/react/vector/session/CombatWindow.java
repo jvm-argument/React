@@ -2,8 +2,6 @@ package com.g4vrk.react.vector.session;
 
 public final class CombatWindow {
 
-    private static final long MILLIS_PER_TICK = 50L;
-
     private volatile long activeUntilMillis;
 
     public boolean isActive() {
@@ -11,7 +9,7 @@ public final class CombatWindow {
     }
 
     public void extend(final long durationTicks) {
-        activeUntilMillis = System.currentTimeMillis() + durationTicks * MILLIS_PER_TICK;
+        activeUntilMillis = System.currentTimeMillis() + durationTicks * 50L;
     }
 
     public void reset() {

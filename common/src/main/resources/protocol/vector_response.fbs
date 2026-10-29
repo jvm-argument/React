@@ -1,4 +1,4 @@
-namespace React.Universe.V2;
+namespace com.g4vrk.react.vector.protocol.schema;
 
 enum DeploymentMode:ubyte { Observe = 0, Enforce = 1 }
 

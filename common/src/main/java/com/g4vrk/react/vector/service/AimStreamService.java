@@ -29,9 +29,6 @@ import org.jetbrains.annotations.Nullable;
 
 public final class AimStreamService {
 
-    private static final long DEFAULT_COMBAT_TICKS = 64L;
-    private static final int NO_PENDING_TARGET = -1;
-
     private final PlayerRegistry players;
     private final EntityTaskRunner entityRunner;
     private final Map<UUID, AimSession> playerData = new ConcurrentHashMap<>();
@@ -140,7 +137,7 @@ public final class AimStreamService {
     }
 
     private long combatTicks() {
-        return Math.max(1L, React.INSTANCE.getInferenceConfig().node("universe", "combat-ticks").getLong(DEFAULT_COMBAT_TICKS));
+        return Math.max(1L, React.INSTANCE.getInferenceConfig().node("universe", "combat-ticks").getLong(64L));
     }
 
     private void capture(
@@ -178,7 +175,7 @@ public final class AimStreamService {
 
     private void resolvePendingTarget(final Player bukkitPlayer, final ReactPlayer player, final AimState state) {
         final int pendingTarget = state.takePendingTargetEntityId();
-        if (pendingTarget == NO_PENDING_TARGET) {
+        if (pendingTarget == -1) {
             return;
         }
         final Entity attacked = findSupportedEntity(bukkitPlayer, pendingTarget);

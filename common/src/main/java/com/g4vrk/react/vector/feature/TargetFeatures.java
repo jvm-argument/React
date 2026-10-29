@@ -13,11 +13,6 @@ import org.jetbrains.annotations.NotNull;
 public final class TargetFeatures {
 
     private static final double[] POSSIBLE_EYE_HEIGHTS = {1.62, 1.27, 0.4};
-    private static final double TARGET_RANGE = 6.0;
-    private static final double TARGET_RANGE_SQUARED = TARGET_RANGE * TARGET_RANGE;
-    private static final double NEAR_EYE_DISTANCE = 0.001;
-    private static final int BOX_POINT_COUNT = 9;
-    private static final int COMPONENTS = 3;
 
     private TargetFeatures() {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
@@ -54,14 +49,14 @@ public final class TargetFeatures {
     ) {
         final ClientVersion version = PlayerClientInfo.version(player);
         if (version != null && version.isOlderThan(ClientVersion.V_1_8)) {
-            return writeLookVector(yaw, pitch, new double[COMPONENTS], 0);
+            return writeLookVector(yaw, pitch, new double[3], 0);
         }
         final boolean includeLastRotation = version == null || version.isNewerThanOrEquals(ClientVersion.V_1_9);
-        final double[] directions = new double[COMPONENTS * (includeLastRotation ? 3 : 2)];
+        final double[] directions = new double[3 * (includeLastRotation ? 3 : 2)];
         writeLookVector(yaw, pitch, directions, 0);
-        writeLookVector(lastYaw, pitch, directions, COMPONENTS);
+        writeLookVector(lastYaw, pitch, directions, 3);
         if (includeLastRotation) {
-            writeLookVector(lastYaw, lastPitch, directions, COMPONENTS * 2);
+            writeLookVector(lastYaw, lastPitch, directions, 3 * 2);
         }
         return directions;
     }
@@ -91,15 +86,15 @@ public final class TargetFeatures {
         double maxDot = Double.NEGATIVE_INFINITY;
         for (final double eyeHeight : POSSIBLE_EYE_HEIGHTS) {
             final double eyeY = py + eyeHeight;
-            for (int point = 0; point < BOX_POINT_COUNT; point++) {
+            for (int point = 0; point < 9; point++) {
                 final double dx = pointX(box, point) - px;
                 final double dy = pointY(box, point) - eyeY;
                 final double dz = pointZ(box, point) - pz;
                 final double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                if (length < NEAR_EYE_DISTANCE) {
+                if (length < 0.001) {
                     return 0.0;
                 }
-                for (int offset = 0; offset < directions.length; offset += COMPONENTS) {
+                for (int offset = 0; offset < directions.length; offset += 3) {
                     final double dot = directions[offset] * (dx / length)
                             + directions[offset + 1] * (dy / length)
                             + directions[offset + 2] * (dz / length);
@@ -135,7 +130,7 @@ public final class TargetFeatures {
 
     private static int countTargetsInRange(final Player player, final double px, final double py, final double pz) {
         int count = 0;
-        for (final Entity entity : player.getNearbyEntities(TARGET_RANGE, TARGET_RANGE, TARGET_RANGE)) {
+        for (final Entity entity : player.getNearbyEntities(6.0, 6.0, 6.0)) {
             if (!(entity instanceof LivingEntity) || entity.isDead()) {
                 continue;
             }
@@ -146,7 +141,7 @@ public final class TargetFeatures {
             final double dx = position.getX() - px;
             final double dy = position.getY() - py;
             final double dz = position.getZ() - pz;
-            if (dx * dx + dy * dy + dz * dz <= TARGET_RANGE_SQUARED) {
+            if (dx * dx + dy * dy + dz * dz <= 36.0) {
                 count++;
             }
         }

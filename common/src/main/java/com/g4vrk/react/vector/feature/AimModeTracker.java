@@ -10,11 +10,6 @@ public final class AimModeTracker {
 
     private static final double MINIMUM_DIVISOR = (double) ((float) Math.pow(0.2f, 3.0)) * 8.0 * 0.15 - 0.001;
 
-    private static final int MODE_WINDOW = 80;
-    private static final int MODE_VALID_COUNT = 15;
-    private static final double MAX_AIM_DELTA = 5.0;
-    private static final double BUCKET_WIDTH = 0.001;
-
     private final RunningMode yawMode = new RunningMode();
     private final RunningMode pitchMode = new RunningMode();
     private double lastYawDelta;
@@ -29,15 +24,15 @@ public final class AimModeTracker {
         final double pitchAbs = Math.abs(deltaPitch);
         trackYaw(fromYaw, toYaw, yawAbs);
         trackPitch(pitchAbs);
-        if (yawMode.size() > MODE_VALID_COUNT) {
+        if (yawMode.size() > 15) {
             yawMode.refreshPeak();
-            if (yawMode.peakCount > MODE_VALID_COUNT) {
+            if (yawMode.peakCount > 15) {
                 modeYaw = yawMode.peakValue;
             }
         }
-        if (pitchMode.size() > MODE_VALID_COUNT) {
+        if (pitchMode.size() > 15) {
             pitchMode.refreshPeak();
-            if (pitchMode.peakCount > MODE_VALID_COUNT) {
+            if (pitchMode.peakCount > 15) {
                 modePitch = pitchMode.peakValue;
             }
         }
@@ -50,8 +45,8 @@ public final class AimModeTracker {
     }
 
     public void writeTo(final @NotNull float[] features) {
-        final boolean modeYawValid = yawMode.peakCount > MODE_VALID_COUNT;
-        final boolean modePitchValid = pitchMode.peakCount > MODE_VALID_COUNT;
+        final boolean modeYawValid = yawMode.peakCount > 15;
+        final boolean modePitchValid = pitchMode.peakCount > 15;
         VectorFeature.MODE_YAW.put(features, (float) modeYaw);
         VectorFeature.MODE_PITCH.put(features, (float) modePitch);
         VectorFeature.MODE_YAW_VALID.put(features, modeYawValid);
@@ -73,7 +68,7 @@ public final class AimModeTracker {
 
     private void trackYaw(final float fromYaw, final float toYaw, final double yawAbs) {
         final double divisor = gcd(yawAbs, lastYawDelta);
-        if (yawAbs <= 0.0 || yawAbs >= MAX_AIM_DELTA || divisor <= MINIMUM_DIVISOR) {
+        if (yawAbs <= 0.0 || yawAbs >= 5.0 || divisor <= MINIMUM_DIVISOR) {
             return;
         }
         final double yawUlp = Math.ulp(Math.max(Math.abs(fromYaw), Math.abs(toYaw)));
@@ -81,18 +76,18 @@ public final class AimModeTracker {
             return;
         }
         if (lastYawDelta != 0.0) {
-            yawMode.add(divisor, Math.max(BUCKET_WIDTH, yawUlp * 2.0));
+            yawMode.add(divisor, Math.max(0.001, yawUlp * 2.0));
         }
         lastYawDelta = yawAbs;
     }
 
     private void trackPitch(final double pitchAbs) {
         final double divisor = gcd(pitchAbs, lastPitchDelta);
-        if (pitchAbs <= 0.0 || pitchAbs >= MAX_AIM_DELTA || divisor <= MINIMUM_DIVISOR) {
+        if (pitchAbs <= 0.0 || pitchAbs >= 5.0 || divisor <= MINIMUM_DIVISOR) {
             return;
         }
         if (lastPitchDelta != 0.0) {
-            pitchMode.add(divisor, BUCKET_WIDTH);
+            pitchMode.add(divisor, 0.001);
         }
         lastPitchDelta = pitchAbs;
     }
@@ -118,7 +113,7 @@ public final class AimModeTracker {
 
     private static final class RunningMode {
 
-        private final ArrayDeque<Double> window = new ArrayDeque<>(MODE_WINDOW);
+        private final ArrayDeque<Double> window = new ArrayDeque<>(80);
         private final Map<Double, Integer> popularity = new HashMap<>();
         private double peakValue;
         private int peakCount;
@@ -128,7 +123,7 @@ public final class AimModeTracker {
         }
 
         void add(final double value, final double bucketWidth) {
-            if (window.size() >= MODE_WINDOW) {
+            if (window.size() >= 80) {
                 evictOldest();
             }
             for (final Map.Entry<Double, Integer> entry : popularity.entrySet()) {

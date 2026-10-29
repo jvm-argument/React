@@ -3,7 +3,6 @@ package com.g4vrk.react.vector.util;
 public final class MouseMath {
 
     private static final double MINIMUM_DIVISOR = Math.pow(0.2, 3.0) * 8.0 * 0.15 - 0.001;
-    private static final double GCD_INPUT_EPSILON = 1.0E-6;
 
     private MouseMath() {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
@@ -55,7 +54,7 @@ public final class MouseMath {
     public static double gcd(final double first, final double second) {
         double a = Math.abs(first);
         double b = Math.abs(second);
-        if (a < GCD_INPUT_EPSILON || b < GCD_INPUT_EPSILON) {
+        if (a < 1.0E-6 || b < 1.0E-6) {
             return 0.0;
         }
         if (a < b) {

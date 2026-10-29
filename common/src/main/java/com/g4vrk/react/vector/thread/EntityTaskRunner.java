@@ -11,8 +11,6 @@ import org.jetbrains.annotations.NotNull;
 
 public final class EntityTaskRunner {
 
-    private static final String ENTITY_SCHEDULER_CLASS =
-            "io.papermc.paper.threadedregions.scheduler.EntityScheduler";
     private static final Method GET_SCHEDULER = findGetScheduler();
     private static final Method RUN = findRun();
 
@@ -55,7 +53,7 @@ public final class EntityTaskRunner {
 
     private static Method findRun() {
         try {
-            return Class.forName(ENTITY_SCHEDULER_CLASS)
+            return Class.forName("io.papermc.paper.threadedregions.scheduler.EntityScheduler")
                     .getMethod("run", Plugin.class, Consumer.class, Runnable.class);
         } catch (final ReflectiveOperationException | LinkageError exception) {
             return null;

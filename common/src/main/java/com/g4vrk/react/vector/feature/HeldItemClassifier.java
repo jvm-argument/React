@@ -6,63 +6,49 @@ import org.jetbrains.annotations.Nullable;
 
 public final class HeldItemClassifier {
 
-    private static final int OTHER = 0;
-    private static final int EMPTY = 1;
-    private static final int MELEE = 2;
-    private static final int END_CRYSTAL = 3;
-    private static final int OBSIDIAN = 4;
-    private static final int RESPAWN_ANCHOR = 5;
-    private static final int GLOWSTONE = 6;
-    private static final int TOTEM = 7;
-    private static final int BLOCK = 8;
-    private static final int RANGED = 9;
-    private static final int THROWABLE = 10;
-    private static final int EDIBLE = 11;
-    private static final int SHIELD = 12;
-
     private HeldItemClassifier() {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
     public static int classify(final @Nullable ItemStack item) {
         if (item == null || item.getType().isAir()) {
-            return EMPTY;
+            return 1;
         }
         final Material type = item.getType();
         final String name = type.name();
         switch (name) {
             case "END_CRYSTAL":
-                return END_CRYSTAL;
+                return 3;
             case "RESPAWN_ANCHOR":
-                return RESPAWN_ANCHOR;
+                return 5;
             case "GLOWSTONE":
-                return GLOWSTONE;
+                return 6;
             case "TOTEM_OF_UNDYING":
-                return TOTEM;
+                return 7;
             case "SHIELD":
-                return SHIELD;
+                return 12;
             case "OBSIDIAN":
             case "CRYING_OBSIDIAN":
             case "BEDROCK":
-                return OBSIDIAN;
+                return 4;
             case "BOW":
             case "CROSSBOW":
             case "TRIDENT":
-                return RANGED;
+                return 9;
             case "ENDER_PEARL":
             case "SNOWBALL":
             case "EGG":
-                return THROWABLE;
+                return 10;
             default:
                 break;
         }
         if (name.endsWith("_SWORD") || name.endsWith("_AXE")) {
-            return MELEE;
+            return 2;
         }
         if (type.isEdible()) {
-            return EDIBLE;
+            return 11;
         }
-        return type.isBlock() ? BLOCK : OTHER;
+        return type.isBlock() ? 8 : 0;
     }
 
 }

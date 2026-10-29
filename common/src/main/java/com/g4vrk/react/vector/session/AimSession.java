@@ -8,12 +8,10 @@ import org.jetbrains.annotations.Nullable;
 
 public final class AimSession {
 
-    private static final int DEFAULT_HISTORY_CAPACITY = 64;
-
     public final CombatWindow combatActivity = new CombatWindow();
 
     private AimState state = new AimState();
-    private FrameHistory history = new FrameHistory(DEFAULT_HISTORY_CAPACITY);
+    private FrameHistory history = new FrameHistory(64);
     private boolean active;
 
     public synchronized @NotNull AimState activate() {

@@ -38,7 +38,7 @@ public enum VectorFeature {
     }
 
     public int datasetIndex() {
-        return AimFrame.BASE_FEATURE_COUNT + ordinal();
+        return 8 + ordinal();
     }
 
     public static @NotNull String csvColumns() {

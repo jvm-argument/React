@@ -15,8 +15,6 @@ import org.jetbrains.annotations.Nullable;
 
 public final class AimState {
 
-    private static final int NO_PENDING_TARGET = -1;
-
     private final Object lock = new Object();
     private final AimModeTracker aimModes = new AimModeTracker();
     private float lastYaw;
@@ -28,7 +26,7 @@ public final class AimState {
     private boolean rotationOnPreviousFlying = true;
     private boolean idleFlyingSinceLastFrame;
     private UUID targetId;
-    private int pendingTargetEntityId = NO_PENDING_TARGET;
+    private int pendingTargetEntityId = -1;
 
     public void onAttackEntity(final int entityId) {
         synchronized (lock) {
@@ -40,14 +38,14 @@ public final class AimState {
     public void onAttack(final @Nullable UUID targetUuid) {
         synchronized (lock) {
             targetId = targetUuid;
-            pendingTargetEntityId = NO_PENDING_TARGET;
+            pendingTargetEntityId = -1;
         }
     }
 
     public int takePendingTargetEntityId() {
         synchronized (lock) {
             final int entityId = pendingTargetEntityId;
-            pendingTargetEntityId = NO_PENDING_TARGET;
+            pendingTargetEntityId = -1;
             return entityId;
         }
     }
@@ -71,7 +69,7 @@ public final class AimState {
         synchronized (lock) {
             aimModes.reset();
             targetId = null;
-            pendingTargetEntityId = NO_PENDING_TARGET;
+            pendingTargetEntityId = -1;
         }
     }
 

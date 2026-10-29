@@ -7,9 +7,8 @@ import org.jetbrains.annotations.Nullable;
 
 public final class AimFrame {
 
-    public static final int BASE_FEATURE_COUNT = 8;
-    public static final int DATASET_FEATURE_COUNT = BASE_FEATURE_COUNT + VectorFeature.COUNT;
-    public static final int INFERENCE_FEATURE_COUNT = VectorFeature.PLAYER_PING.datasetIndex();
+    public static final int DATASET_FEATURE_COUNT = 8 + VectorFeature.COUNT;
+    public static final int INFERENCE_FEATURE_COUNT = DATASET_FEATURE_COUNT - 1;
     public static final String BASE_HEADER = "delta_yaw,delta_pitch,accel_yaw,accel_pitch,jerk_yaw,jerk_pitch,gcd_error_yaw,gcd_error_pitch";
 
     private final float[] features;
@@ -39,7 +38,7 @@ public final class AimFrame {
         features[6] = gcdErrorYaw;
         features[7] = gcdErrorPitch;
         if (vector != null) {
-            System.arraycopy(vector, 0, features, BASE_FEATURE_COUNT, VectorFeature.COUNT);
+            System.arraycopy(vector, 0, features, VectorFeature.ROTATION_PRESENT.datasetIndex(), VectorFeature.COUNT);
         }
     }
 
@@ -49,7 +48,7 @@ public final class AimFrame {
         }
         return new AimFrame(
                 values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7],
-                Arrays.copyOfRange(values, BASE_FEATURE_COUNT, values.length)
+                Arrays.copyOfRange(values, VectorFeature.ROTATION_PRESENT.datasetIndex(), values.length)
         );
     }
 

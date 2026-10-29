@@ -1,9 +1,8 @@
-namespace React.Universe.V2;
+namespace com.g4vrk.react.vector.protocol.schema;
 
-// Frame-major float32 values in UniverseFrame.csvHeader() order, omitting label and PING.
+// Frame-major float32 values in AimFrame.csvHeader() order, omitting label and PING.
 // v2 SHA256: b6e9e126d24af9bfeca4926b0c385bcd68f807b6baaf027934ec88cf14486c06
 // Batch framing: uint16 item_count=1, uint32 payload_length, GAIQ payload (LE).
-// Slots 0..3 preserve the existing UniverseProtocol request layout.
 table InferenceRequest {
   token:string;
   frame_count:uint;
