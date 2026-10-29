@@ -7,33 +7,10 @@ import org.jetbrains.annotations.Nullable;
 
 public final class AimFrame {
 
-    public static final int DATASET_FEATURE_COUNT = 24;
-    public static final int INFERENCE_FEATURE_COUNT = 23;
+    public static final int BASE_FEATURE_COUNT = 8;
+    public static final int DATASET_FEATURE_COUNT = BASE_FEATURE_COUNT + VectorFeature.COUNT;
+    public static final int INFERENCE_FEATURE_COUNT = VectorFeature.PLAYER_PING.datasetIndex();
     public static final String BASE_HEADER = "delta_yaw,delta_pitch,accel_yaw,accel_pitch,jerk_yaw,jerk_pitch,gcd_error_yaw,gcd_error_pitch";
-    public static final int ROTATION_PRESENT = 0;
-    public static final int PITCH = 1;
-    public static final int MODE_YAW = 2;
-    public static final int MODE_PITCH = 3;
-    public static final int MODE_YAW_VALID = 4;
-    public static final int MODE_PITCH_VALID = 5;
-    public static final int DELTA_DOTS_YAW = 6;
-    public static final int DELTA_DOTS_PITCH = 7;
-    public static final int TARGET_VALID = 8;
-    public static final int TARGET_AIM_ANGLE = 9;
-    public static final int TARGET_REL_X = 10;
-    public static final int TARGET_REL_Y = 11;
-    public static final int TARGET_REL_Z = 12;
-    public static final int TARGETS_IN_RANGE_COUNT = 13;
-    public static final int HELD_ITEM_CLASS = 14;
-    public static final int PLAYER_PING = 15;
-    public static final String[] VECTOR_FEATURE_NAMES = {
-            "rotation_present", "pitch", "mode_yaw", "mode_pitch", "mode_yaw_valid", "mode_pitch_valid",
-            "delta_dots_yaw", "delta_dots_pitch", "target_valid", "target_aim_angle", "target_rel_x",
-            "target_rel_y", "target_rel_z", "targets_in_range_count", "held_item_class", "player_ping"
-    };
-    public static final int VECTOR_FEATURE_COUNT = VECTOR_FEATURE_NAMES.length;
-
-    private static final int BASE_FEATURE_COUNT = 8;
 
     private final float[] features;
     private volatile float[] inferenceFeatures;
@@ -49,8 +26,8 @@ public final class AimFrame {
             final float gcdErrorPitch,
             final @Nullable float[] vector
     ) {
-        if (vector != null && vector.length != VECTOR_FEATURE_COUNT) {
-            throw new IllegalArgumentException("Expected " + VECTOR_FEATURE_COUNT + " VECTOR features");
+        if (vector != null && vector.length != VectorFeature.COUNT) {
+            throw new IllegalArgumentException("Expected " + VectorFeature.COUNT + " VECTOR features");
         }
         this.features = new float[DATASET_FEATURE_COUNT];
         features[0] = deltaYaw;
@@ -62,7 +39,7 @@ public final class AimFrame {
         features[6] = gcdErrorYaw;
         features[7] = gcdErrorPitch;
         if (vector != null) {
-            System.arraycopy(vector, 0, features, BASE_FEATURE_COUNT, VECTOR_FEATURE_COUNT);
+            System.arraycopy(vector, 0, features, BASE_FEATURE_COUNT, VectorFeature.COUNT);
         }
     }
 
@@ -77,7 +54,7 @@ public final class AimFrame {
     }
 
     public static @NotNull String csvHeader() {
-        return "is_cheating," + BASE_HEADER + "," + String.join(",", VECTOR_FEATURE_NAMES);
+        return "is_cheating," + BASE_HEADER + "," + VectorFeature.csvColumns();
     }
 
     public @NotNull float[] datasetFeatures() {

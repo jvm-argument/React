@@ -5,6 +5,7 @@ import com.g4vrk.react.vector.feature.HeldItemClassifier;
 import com.g4vrk.react.vector.feature.PlayerClientInfo;
 import com.g4vrk.react.vector.feature.TargetFeatures;
 import com.g4vrk.react.vector.model.AimFrame;
+import com.g4vrk.react.vector.model.VectorFeature;
 import com.g4vrk.react.vector.util.MouseMath;
 import java.util.UUID;
 import org.bukkit.entity.Entity;
@@ -112,21 +113,21 @@ public final class AimState {
             final float deltaYaw,
             final float deltaPitch
     ) {
-        final float[] features = new float[AimFrame.VECTOR_FEATURE_COUNT];
-        features[AimFrame.ROTATION_PRESENT] = rotationOnPreviousFlying && !idleFlyingSinceLastFrame ? 1.0f : 0.0f;
+        final float[] features = new float[VectorFeature.COUNT];
+        VectorFeature.ROTATION_PRESENT.put(features, rotationOnPreviousFlying && !idleFlyingSinceLastFrame);
         rotationOnPreviousFlying = !idleFlyingSinceLastFrame;
         idleFlyingSinceLastFrame = false;
-        features[AimFrame.PITCH] = pitch;
+        VectorFeature.PITCH.put(features, pitch);
         aimModes.update(lastYaw, yaw, deltaYaw, deltaPitch);
         aimModes.writeTo(features);
         final boolean targetValid = target != null && target.isValid() && !target.isDead()
                 && target.getWorld().equals(player.getWorld());
-        features[AimFrame.TARGET_VALID] = targetValid ? 1.0f : 0.0f;
+        VectorFeature.TARGET_VALID.put(features, targetValid);
         if (targetValid) {
             TargetFeatures.writeTo(features, player, target, lastYaw, lastPitch, yaw, pitch);
         }
-        features[AimFrame.HELD_ITEM_CLASS] = HeldItemClassifier.classify(player.getInventory().getItemInMainHand());
-        features[AimFrame.PLAYER_PING] = PlayerClientInfo.ping(player);
+        VectorFeature.HELD_ITEM_CLASS.put(features, HeldItemClassifier.classify(player.getInventory().getItemInMainHand()));
+        VectorFeature.PLAYER_PING.put(features, PlayerClientInfo.ping(player));
         return features;
     }
 

@@ -1,6 +1,6 @@
 package com.g4vrk.react.vector.feature;
 
-import com.g4vrk.react.vector.model.AimFrame;
+import com.g4vrk.react.vector.model.VectorFeature;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,9 +13,7 @@ public final class AimModeTracker {
     private static final int MODE_WINDOW = 80;
     private static final int MODE_VALID_COUNT = 15;
     private static final double MAX_AIM_DELTA = 5.0;
-    private static final double YAW_ULP_RATIO = 0.0625;
-    private static final double YAW_BUCKET_FLOOR = 0.001;
-    private static final double PITCH_BUCKET = 0.001;
+    private static final double BUCKET_WIDTH = 0.001;
 
     private final RunningMode yawMode = new RunningMode();
     private final RunningMode pitchMode = new RunningMode();
@@ -54,12 +52,12 @@ public final class AimModeTracker {
     public void writeTo(final @NotNull float[] features) {
         final boolean modeYawValid = yawMode.peakCount > MODE_VALID_COUNT;
         final boolean modePitchValid = pitchMode.peakCount > MODE_VALID_COUNT;
-        features[AimFrame.MODE_YAW] = (float) modeYaw;
-        features[AimFrame.MODE_PITCH] = (float) modePitch;
-        features[AimFrame.MODE_YAW_VALID] = modeYawValid ? 1.0f : 0.0f;
-        features[AimFrame.MODE_PITCH_VALID] = modePitchValid ? 1.0f : 0.0f;
-        features[AimFrame.DELTA_DOTS_YAW] = modeYawValid ? (float) deltaDotsYaw : 0.0f;
-        features[AimFrame.DELTA_DOTS_PITCH] = modePitchValid ? (float) deltaDotsPitch : 0.0f;
+        VectorFeature.MODE_YAW.put(features, (float) modeYaw);
+        VectorFeature.MODE_PITCH.put(features, (float) modePitch);
+        VectorFeature.MODE_YAW_VALID.put(features, modeYawValid);
+        VectorFeature.MODE_PITCH_VALID.put(features, modePitchValid);
+        VectorFeature.DELTA_DOTS_YAW.put(features, modeYawValid ? (float) deltaDotsYaw : 0.0f);
+        VectorFeature.DELTA_DOTS_PITCH.put(features, modePitchValid ? (float) deltaDotsPitch : 0.0f);
     }
 
     public void reset() {
@@ -79,11 +77,11 @@ public final class AimModeTracker {
             return;
         }
         final double yawUlp = Math.ulp(Math.max(Math.abs(fromYaw), Math.abs(toYaw)));
-        if (yawUlp >= divisor * YAW_ULP_RATIO) {
+        if (yawUlp >= divisor / 16.0) {
             return;
         }
         if (lastYawDelta != 0.0) {
-            yawMode.add(divisor, Math.max(YAW_BUCKET_FLOOR, yawUlp * 2.0));
+            yawMode.add(divisor, Math.max(BUCKET_WIDTH, yawUlp * 2.0));
         }
         lastYawDelta = yawAbs;
     }
@@ -94,7 +92,7 @@ public final class AimModeTracker {
             return;
         }
         if (lastPitchDelta != 0.0) {
-            pitchMode.add(divisor, PITCH_BUCKET);
+            pitchMode.add(divisor, BUCKET_WIDTH);
         }
         lastPitchDelta = pitchAbs;
     }

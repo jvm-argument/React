@@ -4,7 +4,6 @@ include(
     "common",
     "paper",
     "folia",
-    "collector",
     "kits",
     "auth",
     "server"

@@ -1,6 +1,6 @@
 package com.g4vrk.react.vector.feature;
 
-import com.g4vrk.react.vector.model.AimFrame;
+import com.g4vrk.react.vector.model.VectorFeature;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -37,12 +37,12 @@ public final class TargetFeatures {
         final double py = feet.getY();
         final double pz = feet.getZ();
         final double[] directions = lookDirections(player, fromYaw, fromPitch, yaw, pitch);
-        features[AimFrame.TARGET_AIM_ANGLE] = (float) minAngleToBox(px, py, pz, directions, target.getBoundingBox());
+        VectorFeature.TARGET_AIM_ANGLE.put(features, (float) minAngleToBox(px, py, pz, directions, target.getBoundingBox()));
         final Location position = target.getLocation();
-        features[AimFrame.TARGET_REL_X] = (float) (position.getX() - px);
-        features[AimFrame.TARGET_REL_Y] = (float) (position.getY() - py);
-        features[AimFrame.TARGET_REL_Z] = (float) (position.getZ() - pz);
-        features[AimFrame.TARGETS_IN_RANGE_COUNT] = countTargetsInRange(player, px, py, pz);
+        VectorFeature.TARGET_REL_X.put(features, (float) (position.getX() - px));
+        VectorFeature.TARGET_REL_Y.put(features, (float) (position.getY() - py));
+        VectorFeature.TARGET_REL_Z.put(features, (float) (position.getZ() - pz));
+        VectorFeature.TARGETS_IN_RANGE_COUNT.put(features, countTargetsInRange(player, px, py, pz));
     }
 
     private static double[] lookDirections(

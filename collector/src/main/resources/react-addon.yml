@@ -1,6 +1,0 @@
-name: 'ReactDatasetCollector'
-version: 2.4.3
-
-mainClass: com.g4vrk.reactdataset.ReactDatasetAddon
-
-description: 'Persistent frame-based dataset collector for React AntiCheat.'
