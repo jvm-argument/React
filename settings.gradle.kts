@@ -3,7 +3,11 @@ rootProject.name = "react"
 include(
     "common",
     "paper",
-    "folia"
+    "folia",
+    "collector",
+    "kits",
+    "auth",
+    "server"
 )
 
 dependencyResolutionManagement {

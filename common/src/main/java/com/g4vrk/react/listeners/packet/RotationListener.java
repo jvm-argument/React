@@ -10,6 +10,8 @@ import com.github.retrooper.packetevents.protocol.world.Location;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerFlying;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
+import com.g4vrk.react.inference.InferenceModel;
+import com.g4vrk.react.React;
 
 @RequiredArgsConstructor
 public final class RotationListener extends PacketListenerAbstract {
@@ -20,7 +22,9 @@ public final class RotationListener extends PacketListenerAbstract {
     @Override
     public void onPacketReceive(@NotNull PacketReceiveEvent event) {
 
-        if (event.getConnectionState() != ConnectionState.PLAY || !WrapperPlayClientPlayerFlying.isFlying(event.getPacketType())) return;
+        if (event.getConnectionState() != ConnectionState.PLAY) return;
+
+        if (!WrapperPlayClientPlayerFlying.isFlying(event.getPacketType())) return;
 
         final WrapperPlayClientPlayerFlying movePacket;
 
@@ -34,7 +38,7 @@ public final class RotationListener extends PacketListenerAbstract {
 
         final ReactPlayer player = this.playerRegistry.getPlayer(event.getUser().getUUID());
 
-        if (player == null) return;
+        if (player == null || React.INSTANCE.getInferenceServer(player.getUniqueId()).getModel() != InferenceModel.FLOWER) return;
 
         final Location location = movePacket.getLocation();
 

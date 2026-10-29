@@ -39,6 +39,18 @@ permissions:
     default: op
   react.admin:
     default: op
+    children:
+      react.command.usage: true
+      react.command.reload: true
+      react.command.history: true
+      react.alerts: true
+      react.verbose: true
+  react.command.reload:
+    default: op
+  react.command.history:
+    default: op
+  react.verbose:
+    default: op
 
 libraries:
   - com.squareup.moshi:moshi:1.15.0

@@ -18,11 +18,13 @@ import okhttp3.ResponseBody;
 import okio.BufferedSource;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
-
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import com.g4vrk.react.vector.model.AimFrame;
+import com.g4vrk.react.vector.protocol.FrameCodec;
+import java.nio.charset.StandardCharsets;
 
 public final class InferenceAimProcessor {
 
@@ -37,6 +39,12 @@ public final class InferenceAimProcessor {
 
     private final JsonAdapter<Map<String, Object>> requestAdapter;
     private final JsonAdapter<Map<String, Object>> responseAdapter;
+
+    public long requestEpoch() { return inferenceServer.requestEpoch(); }
+
+    public void publishIfCurrent(long epoch, Runnable publication) {
+        inferenceServer.publishIfCurrent(epoch, publication);
+    }
 
     public InferenceAimProcessor(
             @NotNull Logger logger,
@@ -56,16 +64,42 @@ public final class InferenceAimProcessor {
             final @NotNull Rotation @NotNull [] snapshot,
             final @NotNull Consumer<InferenceResult> resultHandler
     ) {
-        if (!inferenceServer.isEnabled()) {
+        checkFrames(playerName, snapshot, snapshot.length, resultHandler);
+    }
+
+    public void check(
+            final @NotNull String playerName,
+            final @NotNull AimFrame[] snapshot,
+            final @NotNull Consumer<InferenceResult> resultHandler
+    ) {
+        if (!inferenceServer.isAcceptingRequests() || snapshot.length == 0) {
+            complete(resultHandler, InferenceResult.unavailable());
+            return;
+        }
+        try {
+            final byte[] batch = FrameCodec.encodeBatch(snapshot, playerName, inferenceServer.getAuthBodyToken());
+            final HttpRequest request = new HttpRequest("POST",
+                    RequestBody.create(batch, MediaType.get("application/x-flatbuffers")),
+                    Map.of("Accept", "application/x-flatbuffers", "X-Batch", "1"));
+            enqueue(playerName, request, resultHandler, true);
+        } catch (RuntimeException failure) {
+            logger.warn("Could not enqueue UNIVERSE request for {}", playerName, failure);
+            complete(resultHandler, InferenceResult.unavailable());
+        }
+    }
+
+    private void checkFrames(String playerName, Object snapshot, int frameCount,
+                             Consumer<InferenceResult> resultHandler) {
+        if (!inferenceServer.isAcceptingRequests()) {
             complete(resultHandler, InferenceResult.unavailable());
             return;
         }
 
-        if (snapshot.length < 3) {
+        if (frameCount < 3) {
             logger.debug(
                     "Not enough rotation frames for {}: {}",
                     playerName,
-                    snapshot.length
+                    frameCount
             );
             complete(resultHandler, InferenceResult.unavailable());
             return;
@@ -107,6 +141,15 @@ public final class InferenceAimProcessor {
             final @NotNull HttpRequest request,
             final @NotNull Consumer<InferenceResult> resultHandler
     ) {
+        enqueue(playerName, request, resultHandler, false);
+    }
+
+    private void enqueue(String playerName, HttpRequest request,
+                         Consumer<InferenceResult> originalResultHandler, boolean universe) {
+        final long requestEpoch = inferenceServer.requestEpoch();
+        final Consumer<InferenceResult> resultHandler = result -> {
+            if (requestEpoch == inferenceServer.requestEpoch()) originalResultHandler.accept(result);
+        };
         inferenceServer.callAsync(request, new Callback() {
 
             @Override
@@ -143,7 +186,20 @@ public final class InferenceAimProcessor {
                             complete(resultHandler, InferenceResult.unavailable());
                             return;
                         }
-                        responseText = source.readUtf8();
+                        if (universe && response.isSuccessful()) {
+                            final byte[] bytes = source.readByteArray();
+                            if (bytes.length >= 4 && bytes[0] == 'G' && bytes[1] == 'A'
+                                    && bytes[2] == 'I' && bytes[3] == 'B') {
+                                FrameCodec.Prediction prediction = FrameCodec.decodePrediction(bytes);
+                                complete(resultHandler, new InferenceResult(prediction.probability(),
+                                        prediction.threshold(), prediction.enforcementEnabled(),
+                                        response.header("X-React-Model-Family"), response.header("X-React-Model-Name")));
+                                return;
+                            }
+                            responseText = new String(bytes, StandardCharsets.UTF_8);
+                        } else {
+                            responseText = source.readUtf8();
+                        }
                     }
 
                     if (!response.isSuccessful()) {
@@ -203,9 +259,23 @@ public final class InferenceAimProcessor {
                         return;
                     }
 
+                    if (universe) {
+                        Double threshold = readNumber(result, "decision_threshold");
+                        Object enabled = result.get("enforcement_enabled");
+                        Object mode = result.get("deployment_mode");
+                        if (threshold == null || !Double.isFinite(threshold) || threshold < 0 || threshold > 1
+                                || !(enabled instanceof Boolean) || !(mode instanceof String)
+                                || !((Boolean) enabled ? "enforce" : "observe").equals(mode)) {
+                            throw new IllegalArgumentException("UNIVERSE response requires a valid deployment mode and threshold");
+                        }
+                        complete(resultHandler, new InferenceResult(probability, threshold, (Boolean) enabled,
+                                readModelPart(result, "model_family"), readModelPart(result, "model_name")));
+                        return;
+                    }
                     complete(
                             resultHandler,
-                            new InferenceResult(probability)
+                            new InferenceResult(probability, Double.NaN, true,
+                                    readModelPart(result, "model_family"), readModelPart(result, "model_name"))
                     );
                 } catch (Exception ex) {
                     logger.warn(
@@ -228,12 +298,21 @@ public final class InferenceAimProcessor {
         return raw instanceof Number number ? number.doubleValue() : null;
     }
 
+    private static String readModelPart(Map<String, Object> response, String key) {
+        Object value = response.get(key);
+        return value instanceof String text ? text : "";
+    }
+
     private void complete(
             @NotNull Consumer<InferenceResult> resultHandler,
             @NotNull InferenceResult result
     ) {
         scheduler.schedule(
-                () -> resultHandler.accept(result),
+                () -> {
+                    // A queued callback belongs to this exact client generation.
+                    // A model switch must never publish an old model's response.
+                    if (inferenceServer.isAcceptingRequests()) resultHandler.accept(result);
+                },
                 TickSchedule.instant()
         );
     }

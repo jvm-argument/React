@@ -11,12 +11,25 @@
 # Включить ИИ сервер?
 enabled: true
 
+# FLOWER keeps its existing JSON protocol and checks/aim-ai.yml buffer settings.
+# UNIVERSE uses the GAIQ/GAIB binary protocol: 44 inputs, excluding dataset PING.
+model: FLOWER
+
+universe:
+  sequence: 64
+  step: 32
+  # Окно боя/сбора UNIVERSE в тиках, независимо от времени боя FLOWER.
+  combat-ticks: 64
+
+# UNIVERSE schema v1 carries body authentication and observation-mode support.
+# Header, bearer and query authentication also use the settings below.
+
 # Авторизация через токен
 auth:
 
   # Если вы используете наш сайт (https://www.react-ac.space/), то
   # сюда нужно вставить token нужного сервера
-  value: ВСТАВЬТЕ_ВАШ_КЛЮЧ
+  value: react_ac-jmfvEYzlfQY-r-4822NWLSbPOwYR-8lKMyx4ystpDpA
 
   # Включена ли отправка токена через что либо
   enabled: true

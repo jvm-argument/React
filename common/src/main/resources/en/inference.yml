@@ -11,6 +11,19 @@
 # Enable the AI server?
 enabled: true
 
+# FLOWER keeps its existing JSON protocol and checks/aim-ai.yml buffer settings.
+# UNIVERSE uses the GAIQ/GAIB binary protocol: 44 inputs, excluding dataset PING.
+model: FLOWER
+
+universe:
+  sequence: 64
+  step: 32
+  # UNIVERSE combat/collection window in ticks, independent of FLOWER's combat time.
+  combat-ticks: 64
+
+# UNIVERSE schema v1 carries body authentication and observation-mode support.
+# Header, bearer and query authentication also use the settings below.
+
 # AI server settings
 inference:
 

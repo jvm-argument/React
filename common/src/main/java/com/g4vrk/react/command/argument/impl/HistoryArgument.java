@@ -35,6 +35,7 @@ public final class HistoryArgument extends LocalArgument {
     public @NotNull Command.Builder<CommandSender> build() {
         return builderFactory.create()
                 .literal("history")
+                .permission("react.command.history")
                 .optional("player", SinglePlayerSelectorParser.singlePlayerSelectorParser())
                 .optional("page", IntegerParser.integerParser(), DefaultValue.constant(1))
                 .handler(context -> {

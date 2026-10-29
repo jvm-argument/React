@@ -7,9 +7,9 @@ import com.g4vrk.react.parse.time.TimeValue;
 import okhttp3.ConnectionPool;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.configurate.ConfigurationNode;
-
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import com.g4vrk.react.inference.InferenceModel;
 
 public class InferenceSettingsFactory {
 
@@ -42,7 +42,9 @@ public class InferenceSettingsFactory {
                 endpoint,
                 request,
                 response,
-                auth
+                auth,
+                InferenceModel.parse(root.node("model").getString(
+                        inferenceNode.node("endpoint", "model-family").getString("FLOWER")))
         );
     }
 
@@ -77,11 +79,17 @@ public class InferenceSettingsFactory {
     ) {
         final boolean enabled = authNode.node("enabled").getBoolean(false);
         final AuthType type = AuthType.safelyMatch(authNode.node("type").getString("none"), AuthType.NONE);
+        String value = authNode.node("value").getString();
+        if (value == null) {
+            // Accept older server-generated configs with a value under the selected method.
+            value = type == AuthType.BEARER ? authNode.node("bearer", "token").getString("")
+                    : authNode.node(type.name().toLowerCase(java.util.Locale.ROOT), "value").getString("");
+        }
 
         return new AuthSettings(
                 enabled,
                 type,
-                authNode.node("value").getString("null"),
+                value,
                 authNode.node("header", "name").getString("X-Subscription-Token"),
                 authNode.node("query", "parameter").getString("token"),
                 authNode.node("body", "field").getString("token")

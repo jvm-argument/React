@@ -31,6 +31,7 @@ import com.g4vrk.react.history.printer.InferenceHistoryPrinter;
 import com.g4vrk.react.listeners.bukkit.CombatListener;
 import com.g4vrk.react.listeners.bukkit.ConnectionListener;
 import com.g4vrk.react.listeners.packet.RotationListener;
+import com.g4vrk.react.listeners.packet.UniverseListener;
 import com.g4vrk.react.inference.aim.InferenceAimProcessor;
 import com.g4vrk.react.inference.server.InferenceServer;
 import com.g4vrk.react.inference.server.settings.InferenceSettingsFactory;
@@ -73,7 +74,6 @@ import org.incendo.cloud.paper.LegacyPaperCommandManager;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -82,6 +82,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import com.g4vrk.react.vector.service.AimStreamService;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -136,6 +137,11 @@ public class React {
     private SchedulaAPI schedulaAPI;
 
     private InferenceServer inferenceServer;
+    private final com.g4vrk.react.inference.PlayerModelRouter playerModelRouter = new com.g4vrk.react.inference.PlayerModelRouter();
+
+    public InferenceServer getInferenceServer(java.util.UUID playerId) {
+        return playerModelRouter.server(playerId);
+    }
 
     private InferenceSettingsFactory inferenceSettingsFactory;
 
@@ -149,6 +155,7 @@ public class React {
     private ReactPlaceholderExpansion placeholderExpansion;
 
     private CombatListener combatListener;
+    private AimStreamService universeService;
 
     private final Set<PacketListenerCommon> registeredListeners = new ObjectOpenHashSet<>();
 
@@ -298,6 +305,8 @@ public class React {
 
         this.scheduler = schedulaAPI.createScheduler();
 
+        this.universeService = new AimStreamService(playerRegistry, scheduler);
+
         logger.info("Creating Channel system...");
 
         final Set<Consumer<Player>> joinHandlers = new ObjectOpenHashSet<>();
@@ -357,6 +366,7 @@ public class React {
 
         logger.info("Registering packet listeners...");
         this.registerPacketListeners(
+                new UniverseListener(playerRegistry, universeService),
                 new RotationListener(playerRegistry, new RotationProcessor(new RotationFactory()))
         );
 
@@ -392,7 +402,9 @@ public class React {
                     plugin.getName(),
                     "g4vrk",
                     plugin.getDescription().getVersion(),
-                    playerRegistry
+                    playerRegistry,
+                    offlinePlayer -> inferenceServer == null ? "Unavailable" :
+                            (offlinePlayer == null ? inferenceServer : getInferenceServer(offlinePlayer.getUniqueId())).getSelectedModelDisplay()
             );
 
             this.placeholderExpansion.register();
@@ -449,6 +461,8 @@ public class React {
 
         final InferenceSettings inferenceSettings = inferenceSettingsFactory.create(inferenceConfig.root());
 
+        final boolean modelChanged = this.inferenceServer.getModel() != inferenceSettings.getModel()
+                || !this.inferenceServer.getEndpoint().equals(inferenceSettings.getEndpoint());
         this.inferenceServer.shutdown();
 
         this.inferenceServer = new InferenceServer(logger, inferenceSettings);
@@ -458,6 +472,7 @@ public class React {
         );
 
         this.punishmentManager.reload();
+        this.playerModelRouter.reload();
         this.inferenceHistoryPrinter.reload();
 
         this.playerFactory.reload();
@@ -468,6 +483,10 @@ public class React {
 
         for (final ReactPlayer player : this.playerRegistry.all()) {
 
+            if (modelChanged) {
+                player.rotationData.clear();
+                player.universeData.clearHistory();
+            }
             player.rotationData.resizeHistory(playerFactory.getRotationsBufferSize());
             player.checkManager.reload();
 
@@ -477,6 +496,7 @@ public class React {
 
     public void terminate() {
         logger.info("Terminating the plugin...");
+        this.playerModelRouter.close();
 
         try {
             logger.info("Stopping all addons...");

@@ -46,6 +46,7 @@ public final class ReloadArgument extends LocalArgument implements ReloadObserve
         return Objects.requireNonNull(builderFactory)
                 .create()
                 .literal("reload")
+                .permission("react.command.reload")
                 .handler(context -> {
 
                     final CommandSender sender = context.sender();

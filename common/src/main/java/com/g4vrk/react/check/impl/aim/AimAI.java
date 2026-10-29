@@ -21,8 +21,12 @@ import com.g4vrk.react.player.model.rotation.RotationData;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import org.jetbrains.annotations.NotNull;
-
 import java.util.concurrent.atomic.AtomicBoolean;
+import com.g4vrk.react.inference.InferenceModel;
+import com.g4vrk.react.vector.model.AimFrame;
+import com.g4vrk.schedula.task.TickSchedule;
+import java.util.concurrent.atomic.AtomicLong;
+import com.g4vrk.react.inference.ProbabilityFormatter;
 
 @CheckInfo(
         name = "Aim-AI",
@@ -44,6 +48,7 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
     private double alertThreshold;
 
     private final AtomicBoolean requesting = new AtomicBoolean();
+    private final AtomicLong requestGeneration = new AtomicLong();
 
     private DecayStrategy decayStrategy;
 
@@ -62,22 +67,24 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
         this.debug = config.node("debug").getBoolean();
         final int legacyRequiredSamples = config.node("required-samples").getInt(40);
 
-        this.sampleWindowSize = Math.max(
-                3,
-                config.node("buffer", "size").getInt(legacyRequiredSamples)
-        );
-        this.requestStep = Math.max(
-                1,
-                config.node("buffer", "send-step").getInt(10)
-        );
-        this.samplesSinceLastRequest = 0;
+        final boolean universe = React.INSTANCE.getInferenceServer(player.getUniqueId()).getModel()
+                == InferenceModel.UNIVERSE;
+        this.sampleWindowSize = universe
+                ? Math.max(1, React.INSTANCE.getInferenceConfig().node("universe", "sequence").getInt(64))
+                : Math.max(3, config.node("buffer", "size").getInt(legacyRequiredSamples));
+        this.requestStep = universe
+                ? Math.max(1, React.INSTANCE.getInferenceConfig().node("universe", "step").getInt(32))
+                : Math.max(1, config.node("buffer", "send-step").getInt(10));
+        resetSamples();
+        player.universeData.resize(this.sampleWindowSize);
         this.alertThreshold = config.node("alert", "threshold").getDouble(0.49D);
 
         final double decayAmount = config.node("decay", "amount").getDouble(0.5D);
 
         this.decayStrategy = new LinearDecay(decayAmount);
 
-        this.inferenceAimProcessor = React.INSTANCE.getInferenceAimProcessor();
+        this.inferenceAimProcessor = new InferenceAimProcessor(React.INSTANCE.getLogger(),
+                React.INSTANCE.getInferenceServer(player.getUniqueId()), React.INSTANCE.getScheduler());
 
     }
 
@@ -89,7 +96,8 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
     @Override
     public void onRotation(@NotNull RotationData currentData) {
 
-        if (!player.combatActivity.isActive() || !shouldCheck()) {
+        if (React.INSTANCE.getInferenceServer(player.getUniqueId()).getModel() != InferenceModel.FLOWER
+                || !player.combatActivity.isActive() || !shouldCheck()) {
             return;
         }
 
@@ -127,11 +135,18 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
             debugHandler.debug("Sending ML request (" + snapshot.length + " rotations)");
         }
 
+        final long generation = requestGeneration.get();
+        final InferenceAimProcessor processor = inferenceAimProcessor;
+        final long clientEpoch = processor.requestEpoch();
         try {
-            inferenceAimProcessor.check(
+            processor.check(
                     player.getName(),
                     snapshot,
-                    this::onServerResult
+                    result -> {
+                        processor.publishIfCurrent(clientEpoch, () -> {
+                            if (requestGeneration.get() == generation) onServerResult(result);
+                        });
+                    }
             );
         } catch (final Throwable th) {
             requesting.set(false);
@@ -140,6 +155,39 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
                     player.getName(),
                     th
             );
+        }
+    }
+
+    public void resetSamples() {
+        samplesSinceLastRequest = 0;
+        requestGeneration.incrementAndGet();
+        requesting.set(false);
+    }
+
+    public void onUniverseFrame() {
+        if (React.INSTANCE.getInferenceServer(player.getUniqueId()).getModel() != InferenceModel.UNIVERSE
+                || !player.universeData.combatActivity.isActive() || !shouldCheck()) {
+            return;
+        }
+        player.universeData.resize(sampleWindowSize);
+        if (requesting.get()) return;
+        final AimFrame[] snapshot = player.universeData.pollSnapshot(requestStep);
+        if (snapshot == null || !requesting.compareAndSet(false, true)) {
+            return;
+        }
+        final long generation = requestGeneration.get();
+        final InferenceAimProcessor processor = inferenceAimProcessor;
+        final long clientEpoch = processor.requestEpoch();
+        try {
+            processor.check(player.getName(), snapshot, result ->
+                    React.INSTANCE.getScheduler().scheduleEntity(player.bukkitPlayer, () -> {
+                        processor.publishIfCurrent(clientEpoch, () -> {
+                            if (requestGeneration.get() == generation) onServerResult(result);
+                        });
+                    }, TickSchedule.instant()));
+        } catch (Throwable failure) {
+            requesting.set(false);
+            React.INSTANCE.getLogger().warn("Could not start UNIVERSE request for {}", player.getName(), failure);
         }
     }
 
@@ -170,10 +218,18 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
             final TextColor color = colorResolver.resolve(probability);
 
             final Component verbose = Component.text(
-                    probability
+                    // Presentation only: keep the original double for decisions,
+                    // events and persistence, including sub-micro probabilities.
+                    ProbabilityFormatter.format(probability) + " (" + result.modelDisplay() + ")"
             ).color(color);
 
-            if (probability > alertThreshold) {
+            final double threshold = Double.isFinite(result.getDecisionThreshold())
+                    ? result.getDecisionThreshold() : alertThreshold;
+            final boolean flagged = Double.isFinite(result.getDecisionThreshold())
+                    ? probability >= threshold : probability > threshold;
+            if (!result.isEnforcementEnabled()) {
+                if (debug) debugHandler.debug("UNIVERSE observation: " + probability + ", threshold=" + threshold);
+            } else if (flagged) {
 
                 if (debug) {
                     debugHandler.debug(

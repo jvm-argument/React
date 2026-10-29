@@ -17,8 +17,14 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
-
 import java.util.Map;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
+import com.squareup.moshi.Moshi;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import com.g4vrk.react.inference.InferenceModel;
 
 @Getter
 public final class InferenceServer {
@@ -32,6 +38,41 @@ public final class InferenceServer {
     private final InferenceResponseSettings responseSettings;
 
     private final boolean enabled;
+    private final InferenceModel model;
+    private final String authBodyToken;
+    private final String modelMetadataToken;
+    private final AtomicLong nextModelMetadataRequest = new AtomicLong();
+    private volatile String selectedModelDisplay = "Unavailable";
+    private String playerModelDisplay;
+
+    public InferenceServer(Logger logger, InferenceSettings settings, String playerModelDisplay) {
+        this(logger, settings);
+        this.playerModelDisplay = playerModelDisplay;
+    }
+    private final AtomicBoolean suspended = new AtomicBoolean();
+    private final AtomicBoolean closed = new AtomicBoolean();
+    private final AtomicLong requestEpoch = new AtomicLong();
+
+    public long requestEpoch() { return requestEpoch.get(); }
+
+    /** Serialize the FINAL publication with pause, including callbacks on entity schedulers. */
+    public synchronized void publishIfCurrent(long epoch, Runnable publication) {
+        if (isAcceptingRequests() && requestEpoch.get() == epoch) publication.run();
+    }
+
+    public boolean isAcceptingRequests() {
+        return enabled && !suspended.get() && !closed.get();
+    }
+
+    public synchronized void pauseRequests() {
+        suspended.set(true);
+        requestEpoch.incrementAndGet();
+        client.dispatcher().cancelAll();
+    }
+
+    public synchronized void resumeRequests() {
+        if (!closed.get()) suspended.set(false);
+    }
 
     public InferenceServer(
             final @NotNull Logger logger,
@@ -39,6 +80,10 @@ public final class InferenceServer {
     ) {
         this.client = settings.buildClient();
         this.enabled = settings.isEnabled();
+        this.model = settings.getModel();
+        this.modelMetadataToken = settings.getAuth().isEnabled() ? settings.getAuth().getValue() : null;
+        this.authBodyToken = settings.getAuth().isEnabled() && settings.getAuth().getType() == AuthType.BODY
+                ? settings.getAuth().getValue() : null;
 
         this.endpoint = settings.getEndpoint();
         this.requestSettings = settings.getRequest();
@@ -52,9 +97,66 @@ public final class InferenceServer {
         }
     }
 
+    /** Nonblocking display metadata, resolved from the same subscription as inference. */
+    public String getSelectedModelDisplay() {
+        if (!enabled) return "Disabled";
+        if (playerModelDisplay != null) return playerModelDisplay;
+        long now = System.currentTimeMillis();
+        long next = nextModelMetadataRequest.get();
+        if (now >= next && nextModelMetadataRequest.compareAndSet(next, now + 60_000L)) {
+            refreshSelectedModelDisplay();
+        }
+        return selectedModelDisplay;
+    }
+
+    private void refreshSelectedModelDisplay() {
+        if (modelMetadataToken == null || modelMetadataToken.isBlank()) {
+            selectedModelDisplay = "Unavailable";
+            return;
+        }
+        HttpUrl origin = HttpUrl.parse(baseUrl);
+        if (origin == null) return;
+        HttpUrl url = origin.newBuilder().encodedPath("/api/v1/subscriptions/model")
+                .query(null).fragment(null).build();
+        Request request = new Request.Builder().url(url)
+                .header("X-Subscription-Token", modelMetadataToken).get().build();
+        try {
+            // Never forward the subscription secret to a redirect destination.
+            client.newBuilder().followRedirects(false).followSslRedirects(false).build()
+                    .newCall(request).enqueue(new Callback() {
+                @Override public void onFailure(Call call, IOException exception) {
+                    selectedModelDisplay = "Unavailable";
+                }
+                @Override public void onResponse(Call call, Response response) {
+                    try (response; ResponseBody body = response.body()) {
+                        if (!response.isSuccessful() || body == null || body.source().request(8193)) {
+                            selectedModelDisplay = "Unavailable";
+                            return;
+                        }
+                        Map<?, ?> metadata = new Moshi.Builder().build().adapter(Map.class).fromJson(body.string());
+                        String family = metadata == null ? "" : String.valueOf(metadata.get("model_family"));
+                        String name = metadata == null ? "" : String.valueOf(metadata.get("model_name"));
+                        String identity = family + "/" + name;
+                        selectedModelDisplay = switch (identity) {
+                            case "flower/baseline" -> "Flower/Baseline";
+                            case "flower/ultra" -> "Flower/Ultra";
+                            case "universe/beta" -> "Universe/Beta";
+                            default -> "Unavailable";
+                        };
+                    } catch (Exception ignored) {
+                        selectedModelDisplay = "Unavailable";
+                    }
+                }
+            });
+        } catch (RuntimeException ignored) {
+            selectedModelDisplay = "Unavailable";
+        }
+    }
+
     public @NotNull Call newCall(
             final @NotNull HttpRequest httpRequest
     ) {
+        if (!isAcceptingRequests()) throw new IllegalStateException("Inference client is paused or closed");
         final String rawUrl = baseUrl + endpoint.getPath();
         final HttpUrl parsedUrl = HttpUrl.parse(rawUrl);
 
@@ -70,13 +172,15 @@ public final class InferenceServer {
         final Request.Builder requestBuilder = new Request.Builder()
                 .url(url)
                 .method(httpRequest.getMethod(), httpRequest.getBody());
+        if (playerModelDisplay != null) requestBuilder.header("X-React-Player-Scoped", "true");
 
+        httpRequest.getHeaders().forEach(requestBuilder::header);
         authApplier.applyToHeaders(requestBuilder);
 
         return this.client.newCall(requestBuilder.build());
     }
 
-    public void callAsync(
+    public synchronized void callAsync(
             final @NotNull HttpRequest request,
             final @NotNull Callback callback
     ) {
@@ -87,7 +191,11 @@ public final class InferenceServer {
         this.authApplier.applyToPayload(payload);
     }
 
-    public void shutdown() {
+    public synchronized void shutdown() {
+        closed.set(true);
+        suspended.set(true);
+        requestEpoch.incrementAndGet();
+        this.client.dispatcher().cancelAll();
         try {
             this.client.dispatcher().executorService().shutdown();
         } catch (final Throwable ignored) {

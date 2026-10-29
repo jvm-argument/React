@@ -1,5 +1,7 @@
 package com.g4vrk.react.history.printer;
 
+import com.g4vrk.react.inference.ProbabilityFormatter;
+
 import com.g4vrk.config.Config;
 import com.g4vrk.react.React;
 import com.g4vrk.react.api.ReloadObserver;
@@ -89,7 +91,7 @@ public class InferenceHistoryPrinter implements ReloadObserver {
                 .replace("{page:current}", String.valueOf(page))
                 .replace("{page:next}", String.valueOf(Math.min(totalPages, page + 1)))
                 .replace("{page:max}", String.valueOf(totalPages))
-                .replace("{avg-probability}", String.valueOf(average));
+                .replace("{avg-probability}", ProbabilityFormatter.format(average));
     }
 
     private void send(
@@ -102,7 +104,7 @@ public class InferenceHistoryPrinter implements ReloadObserver {
         for (String line : lines) {
             String text = common.apply(line);
             if (entry != null) {
-                text = text.replace("{probability}", String.valueOf(entry.getProbability()))
+                text = text.replace("{probability}", ProbabilityFormatter.format(entry.getProbability()))
                         .replace("{check}", entry.getCheck().getName());
             }
             Component component = serializer.apply(text);
@@ -117,7 +119,7 @@ public class InferenceHistoryPrinter implements ReloadObserver {
     private @NotNull Component replaceColored(
             @NotNull Component component, @NotNull String placeholder, double probability
     ) {
-        final Component colored = Component.text(probability)
+        final Component colored = Component.text(ProbabilityFormatter.format(probability))
                 .color(probabilityColorResolver.resolve(probability));
         return component.replaceText(builder -> builder.matchLiteral(placeholder).replacement(colored));
     }

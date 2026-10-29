@@ -1,5 +1,7 @@
 package com.g4vrk.react.placeholder;
 
+import com.g4vrk.react.inference.ProbabilityFormatter;
+
 import com.g4vrk.react.color.resolver.ValueColorResolver;
 import com.g4vrk.react.color.resolver.impl.ProbabilityColorResolver;
 import com.g4vrk.react.history.entry.InferenceHistoryEntry;
@@ -10,6 +12,7 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import java.util.function.Supplier;
 
 public class ReactPlaceholderExpansion extends PlaceholderExpansion {
 
@@ -18,6 +21,7 @@ public class ReactPlaceholderExpansion extends PlaceholderExpansion {
     private final String version;
 
     private final PlayerRegistry registry;
+    private final java.util.function.Function<OfflinePlayer, String> selectedModel;
 
     private final ValueColorResolver probabilityColorResolver = new ProbabilityColorResolver();
 
@@ -27,10 +31,21 @@ public class ReactPlaceholderExpansion extends PlaceholderExpansion {
             @NotNull String version,
             @NotNull PlayerRegistry registry
     ) {
+        this(id, author, version, registry, () -> "Unavailable");
+    }
+
+    public ReactPlaceholderExpansion(String id, String author, String version,
+                                     PlayerRegistry registry, Supplier<String> selectedModel) {
+        this(id, author, version, registry, ignored -> selectedModel.get());
+    }
+
+    public ReactPlaceholderExpansion(String id, String author, String version,
+                                     PlayerRegistry registry, java.util.function.Function<OfflinePlayer, String> selectedModel) {
         this.id = id;
         this.author = author;
         this.version = version;
         this.registry = registry;
+        this.selectedModel = selectedModel;
     }
 
     @Override
@@ -59,6 +74,17 @@ public class ReactPlaceholderExpansion extends PlaceholderExpansion {
             final OfflinePlayer offlinePlayer,
             final @NotNull String params
     ) {
+
+        if (params.equals("model") || params.equals("model_family") || params.equals("model_name")) {
+            String display = selectedModel.apply(offlinePlayer);
+            if (display == null) display = "Unavailable";
+            String[] parts = display.split("/", 2);
+            return switch (params) {
+                case "model_family" -> parts[0];
+                case "model_name" -> parts.length == 2 ? parts[1] : display;
+                default -> display;
+            };
+        }
 
         if (offlinePlayer == null) {
             return null;
@@ -114,7 +140,7 @@ public class ReactPlaceholderExpansion extends PlaceholderExpansion {
                 case "probability" -> {
                     final double probability = entry.getProbability();
 
-                    yield Double.toString(probability);
+                    yield ProbabilityFormatter.format(probability);
                 }
 
                 case "probability:colored" -> {
@@ -123,7 +149,7 @@ public class ReactPlaceholderExpansion extends PlaceholderExpansion {
                     yield "<" +
                             probabilityColorResolver.resolve(probability).asHexString() +
                             ">" +
-                            probability;
+                            ProbabilityFormatter.format(probability);
                 }
 
                 case "check" -> entry.getCheck().getName();
@@ -139,7 +165,7 @@ public class ReactPlaceholderExpansion extends PlaceholderExpansion {
             case "size" ->
                     Integer.toString(player.inferenceHistory.size());
 
-            case "avg-probability" -> Double.toString(statisticResult.averageProbability());
+            case "avg-probability" -> ProbabilityFormatter.format(statisticResult.averageProbability());
 
             case "avg-probability:colored" -> {
 
@@ -148,7 +174,7 @@ public class ReactPlaceholderExpansion extends PlaceholderExpansion {
                 yield "<" +
                         probabilityColorResolver.resolve(average).asHexString() +
                         ">" +
-                        average;
+                        ProbabilityFormatter.format(average);
             }
 
             default -> null;

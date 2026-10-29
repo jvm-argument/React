@@ -1,0 +1,17 @@
+namespace React.Universe.V2;
+
+enum DeploymentMode:ubyte { Observe = 0, Enforce = 1 }
+
+// Response framing preserves the 14-byte GAIB legacy prefix:
+// ASCII GAIB, uint16 item_count=1, float64 cheat_probability, then GAIR payload.
+// Both probabilities must match. New clients require the versioned trailer.
+table InferenceResponse {
+  schema_version:uint;
+  cheat_probability:double;
+  decision_threshold:double;
+  deployment_mode:DeploymentMode = Observe;
+  enforcement_enabled:bool = false;
+  run_id:string;
+}
+root_type InferenceResponse;
+file_identifier "GAIR";

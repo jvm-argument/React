@@ -1,0 +1,18 @@
+namespace React.Universe.V2;
+
+// Frame-major float32 values in UniverseFrame.csvHeader() order, omitting label and PING.
+// v2 SHA256: b6e9e126d24af9bfeca4926b0c385bcd68f807b6baaf027934ec88cf14486c06
+// Batch framing: uint16 item_count=1, uint32 payload_length, GAIQ payload (LE).
+// Slots 0..3 preserve the existing UniverseProtocol request layout.
+table InferenceRequest {
+  token:string;
+  frame_count:uint;
+  features:[float];
+  model_id:uint;
+  schema_version:uint;
+  player_name:string;
+  schema_hash:string;
+  supports_observation:bool = false;
+}
+root_type InferenceRequest;
+file_identifier "GAIQ";

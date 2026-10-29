@@ -12,6 +12,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import com.g4vrk.react.player.CombatActivity;
+import com.g4vrk.react.player.CombatTargets;
 import com.g4vrk.react.player.registry.PlayerRegistry;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,6 +30,10 @@ public class CombatListener implements Listener, ReloadObserver {
         this.playerRegistry = playerRegistry;
 
         this.reload();
+    }
+
+    public long combatTicks() {
+        return combatTicks;
     }
 
     public void reload() {
@@ -52,9 +57,15 @@ public class CombatListener implements Listener, ReloadObserver {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent event) {
 
-        if (!(event.getDamager() instanceof Player damager) || !(event.getEntity() instanceof Player)) return;
+        if (!(event.getDamager() instanceof Player damager) || !CombatTargets.isSupported(event.getEntity())) return;
 
         final ReactPlayer localDamager = playerRegistry.getPlayer(damager.getUniqueId());
+
+        activate(localDamager);
+    }
+
+    /** Also used for packet attacks on invulnerable training mannequins. */
+    public void activate(ReactPlayer localDamager) {
 
         final CombatActivity damagerCombatActivity = localDamager != null ? localDamager.combatActivity : null;
 

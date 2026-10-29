@@ -22,7 +22,6 @@ punishments:
       10;8:
 
         # Выполнить команду от имени консоли
-        - "[console] kick {player} [React] Heuristic violations (Aim-AI)"
 
         # Сбросить VL игрока
         #- "[reset-vl]"
