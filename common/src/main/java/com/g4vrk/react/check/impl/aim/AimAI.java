@@ -64,8 +64,8 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
         this.debug = config.node("debug").getBoolean();
 
         final Config vectorConfig = React.INSTANCE.getVectorConfig();
-        this.sampleWindowSize = Math.max(1, vectorConfig.node("sequence").getInt(64));
-        this.requestStep = Math.max(1, vectorConfig.node("step").getInt(32));
+        this.sampleWindowSize = Math.max(1, vectorConfig.node("buffer", "sequence").getInt(64));
+        this.requestStep = Math.max(1, vectorConfig.node("buffer", "step").getInt(32));
         resetSamples();
         player.universeData.resize(this.sampleWindowSize);
         this.alertThreshold = config.node("alert", "threshold").getDouble(0.49D);
