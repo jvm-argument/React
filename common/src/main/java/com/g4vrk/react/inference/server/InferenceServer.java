@@ -125,8 +125,6 @@ public final class InferenceServer {
                         String name = metadata == null ? "" : String.valueOf(metadata.get("model_name"));
                         String identity = family + "/" + name;
                         selectedModelDisplay = switch (identity) {
-                            case "flower/baseline" -> "Flower/Baseline";
-                            case "flower/ultra" -> "Flower/Ultra";
                             case "universe/beta" -> "Universe/Beta";
                             default -> "Unavailable";
                         };

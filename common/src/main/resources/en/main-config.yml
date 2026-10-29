@@ -31,9 +31,3 @@ player:
     # Number of seconds to analyze rotations after a hit
     time: 2s
 
-  # Player data settings
-  data:
-    # Maximum number of rotations stored for each player
-    rotations-buffer-size: 150
-
-

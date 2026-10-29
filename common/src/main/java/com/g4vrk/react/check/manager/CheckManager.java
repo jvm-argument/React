@@ -5,9 +5,7 @@ import com.g4vrk.react.React;
 import com.g4vrk.react.api.ReloadObserver;
 import com.g4vrk.react.check.Check;
 import com.g4vrk.react.check.impl.aim.AimAI;
-import com.g4vrk.react.check.type.RotationCheck;
 import com.g4vrk.react.player.ReactPlayer;
-import com.g4vrk.react.player.model.rotation.RotationData;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.ImmutableClassToInstanceMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -20,9 +18,7 @@ import java.util.Map;
 // realization like in GrimAC
 public final class CheckManager {
 
-    private final ClassToInstanceMap<RotationCheck> rotationChecks;
-
-    private final List<RotationCheck> rotationChecksValues;
+    private final ClassToInstanceMap<Check> checks;
 
     private final List<Check> checksValues;
 
@@ -30,34 +26,20 @@ public final class CheckManager {
             @NotNull ReactPlayer player
     ) {
 
-        this.rotationChecks = new ImmutableClassToInstanceMap.Builder<RotationCheck>()
+        this.checks = new ImmutableClassToInstanceMap.Builder<Check>()
                 .put(AimAI.class, new AimAI(player))
                 .build();
 
-        this.rotationChecksValues = new ObjectArrayList<>(this.rotationChecks.values());
-        this.checksValues = new ObjectArrayList<>(this.rotationChecksValues.size());
-        for (final RotationCheck check : this.rotationChecksValues) {
-            this.checksValues.add((Check) check);
-        }
+        this.checksValues = new ObjectArrayList<>(this.checks.values());
 
         this.reload();
 
     }
 
-    public @Nullable RotationCheck getRotationCheck(
-            final @NotNull Class<? extends RotationCheck> checkClass
+    public <T extends Check> @Nullable T getCheck(
+            final @NotNull Class<T> checkClass
     ) {
-        return this.rotationChecks.get(checkClass);
-    }
-
-    public void onRotationChange(
-            final @NotNull RotationData data
-    ) {
-
-        for (final RotationCheck check : rotationChecksValues) {
-            check.onRotation(data);
-        }
-
+        return this.checks.getInstance(checkClass);
     }
 
     public @NotNull List<Check> checks() {
@@ -75,7 +57,7 @@ public final class CheckManager {
 
     public void reload() {
 
-        for (final Map.Entry<Class<? extends RotationCheck>, RotationCheck> entry : rotationChecks.entrySet()) {
+        for (final Map.Entry<Class<? extends Check>, Check> entry : checks.entrySet()) {
 
             final Config config = React.INSTANCE.getCheckConfigRegistry()
                     .config(entry.getKey());

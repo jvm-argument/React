@@ -33,8 +33,6 @@ public class InferenceResult {
 
     public String modelDisplay() {
         return switch (modelFamily + "/" + modelName) {
-            case "flower/baseline" -> "Flower/Baseline";
-            case "flower/ultra" -> "Flower/Ultra";
             case "universe/beta" -> "Universe/Beta";
             default -> "Model unknown";
         };

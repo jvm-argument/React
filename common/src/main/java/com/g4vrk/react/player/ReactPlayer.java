@@ -7,7 +7,6 @@ import com.g4vrk.react.check.Check;
 import com.g4vrk.react.check.manager.CheckManager;
 import com.g4vrk.react.history.InferenceHistory;
 import com.g4vrk.react.history.entry.InferenceHistoryEntry;
-import com.g4vrk.react.player.model.rotation.RotationData;
 import com.g4vrk.react.statistic.InferenceStatistic;
 import com.g4vrk.react.storage.model.PlayerStorageData;
 import com.g4vrk.react.storage.model.StoredInference;
@@ -31,7 +30,6 @@ public final class ReactPlayer {
     public final Player bukkitPlayer;
 
     public final CombatActivity combatActivity;
-    public final RotationData rotationData;
     public final AimSession universeData;
 
     public final AlertPrinter alertPrinter;
@@ -47,8 +45,7 @@ public final class ReactPlayer {
     public ReactPlayer(
             @NotNull UUID uniqueId,
             @NotNull String name,
-            @NotNull Player bukkitPlayer,
-            int rotationHistorySize
+            @NotNull Player bukkitPlayer
     ) {
         this.uniqueId = uniqueId;
         this.name = name;
@@ -71,15 +68,13 @@ public final class ReactPlayer {
         this.inferenceStatistic = new InferenceStatistic(this.inferenceHistory);
 
         this.combatActivity = new CombatActivity();
-        this.rotationData = new RotationData(rotationHistorySize);
     }
 
     public void clearTransientState() {
-        rotationData.clear();
         universeData.reset();
         combatActivity.reset();
         final AimAI aim =
-                (AimAI) checkManager.getRotationCheck(
+                checkManager.getCheck(
                         AimAI.class);
         if (aim != null) {
             aim.resetSamples();

@@ -9,14 +9,12 @@ import com.g4vrk.react.check.debug.DebugHandler;
 import com.g4vrk.react.check.decay.DecayStrategy;
 import com.g4vrk.react.check.decay.impl.LinearDecay;
 import com.g4vrk.react.check.info.CheckInfo;
-import com.g4vrk.react.check.type.RotationCheck;
 import com.g4vrk.react.color.resolver.ValueColorResolver;
 import com.g4vrk.react.color.resolver.impl.ProbabilityColorResolver;
 import com.g4vrk.react.history.entry.InferenceHistoryEntry;
 import com.g4vrk.react.inference.aim.InferenceAimProcessor;
 import com.g4vrk.react.inference.aim.InferenceResult;
 import com.g4vrk.react.player.ReactPlayer;
-import com.g4vrk.react.player.model.rotation.RotationData;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +28,7 @@ import com.g4vrk.react.inference.ProbabilityFormatter;
         name = "Aim-AI",
         configId = "aim-ai"
 )
-public final class AimAI extends Check implements RotationCheck, ReloadObserver {
+public final class AimAI extends Check implements ReloadObserver {
 
     private final ValueColorResolver colorResolver;
 
@@ -82,10 +80,6 @@ public final class AimAI extends Check implements RotationCheck, ReloadObserver 
     @Override
     public @NotNull DecayStrategy decayStrategy() {
         return this.decayStrategy;
-    }
-
-    @Override
-    public void onRotation(@NotNull RotationData currentData) {
     }
 
     public void resetSamples() {

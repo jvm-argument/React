@@ -71,10 +71,6 @@ public class CombatListener implements Listener, ReloadObserver {
 
         if (damagerCombatActivity == null) return;
 
-        if (!damagerCombatActivity.isActive()) {
-            localDamager.rotationData.clear();
-        }
-
         damagerCombatActivity.extend(combatTicks);
     }
 }

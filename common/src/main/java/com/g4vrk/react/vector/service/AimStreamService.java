@@ -195,7 +195,7 @@ public final class AimStreamService {
             return;
         }
         data.push(frame);
-        final AimAI check = (AimAI) player.checkManager.getRotationCheck(AimAI.class);
+        final AimAI check = player.checkManager.getCheck(AimAI.class);
         if (check != null) {
             check.onVectorFrame();
         }

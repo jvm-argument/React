@@ -87,7 +87,7 @@ public final class InferenceAimProcessor {
                     @NotNull Call call,
                     @NotNull IOException ex
             ) {
-                logger.warn("Could not send rotation frames for {}", playerName, ex);
+                logger.warn("Could not send VECTOR frames for {}", playerName, ex);
 
                 complete(resultHandler, InferenceResult.unavailable());
             }

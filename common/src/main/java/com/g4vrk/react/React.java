@@ -477,10 +477,8 @@ public class React {
         for (final ReactPlayer player : this.playerRegistry.all()) {
 
             if (endpointChanged) {
-                player.rotationData.clear();
                 player.universeData.clearHistory();
             }
-            player.rotationData.resizeHistory(playerFactory.getRotationsBufferSize());
             player.checkManager.reload();
 
         }
