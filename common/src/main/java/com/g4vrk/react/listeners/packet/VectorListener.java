@@ -12,12 +12,12 @@ import com.github.retrooper.packetevents.protocol.ConnectionState;
 import java.util.UUID;
 import org.bukkit.entity.Player;
 
-/** UNIVERSE receives attacks and rotations at LOW packet priority. */
-public final class UniverseListener extends PacketListenerAbstract {
+/** VECTOR receives attacks and rotations at LOW packet priority. */
+public final class VectorListener extends PacketListenerAbstract {
     private final PlayerRegistry players;
     private final AimStreamService service;
 
-    public UniverseListener(PlayerRegistry players, AimStreamService service) {
+    public VectorListener(PlayerRegistry players, AimStreamService service) {
         super(PacketListenerPriority.LOW);
         this.players = players;
         this.service = service;
@@ -39,7 +39,7 @@ public final class UniverseListener extends PacketListenerAbstract {
                 service.onPacketBeforeJoin(uuid, rawPlayer instanceof Player bukkitPlayer ? bukkitPlayer : null, event);
             }
         } catch (RuntimeException exception) {
-            React.INSTANCE.getLogger().debug("Could not process UNIVERSE packet", exception);
+            React.INSTANCE.getLogger().debug("Could not process VECTOR packet", exception);
         }
     }
 

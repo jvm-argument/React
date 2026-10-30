@@ -30,7 +30,7 @@ public final class ReactPlayer {
     public final Player bukkitPlayer;
 
     public final CombatActivity combatActivity;
-    public final AimSession universeData;
+    public final AimSession vectorData;
 
     public final AlertPrinter alertPrinter;
     public final VerbosePrinter verbosePrinter;
@@ -50,7 +50,7 @@ public final class ReactPlayer {
         this.uniqueId = uniqueId;
         this.name = name;
         this.bukkitPlayer = bukkitPlayer;
-        this.universeData = React.INSTANCE.getUniverseService().claimPlayerData(uniqueId);
+        this.vectorData = React.INSTANCE.getVectorService().claimPlayerData(uniqueId);
         this.alertPrinter = React.INSTANCE.getAlertPrinter();
         this.verbosePrinter = React.INSTANCE.getVerbosePrinter();
         this.checkManager = new CheckManager(this);
@@ -71,7 +71,7 @@ public final class ReactPlayer {
     }
 
     public void clearTransientState() {
-        universeData.reset();
+        vectorData.reset();
         combatActivity.reset();
         final AimAI aim =
                 checkManager.getCheck(

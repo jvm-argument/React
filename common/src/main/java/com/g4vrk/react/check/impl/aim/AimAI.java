@@ -64,7 +64,7 @@ public final class AimAI extends Check implements ReloadObserver {
         this.sampleWindowSize = Math.max(1, config.node("buffer", "sequence").getInt(64));
         this.requestStep = Math.max(1, config.node("buffer", "step").getInt(32));
         resetSamples();
-        player.universeData.resize(this.sampleWindowSize);
+        player.vectorData.resize(this.sampleWindowSize);
         this.alertThreshold = config.node("alert", "threshold").getDouble(0.49D);
 
         final double decayAmount = config.node("decay", "amount").getDouble(0.5D);
@@ -87,12 +87,12 @@ public final class AimAI extends Check implements ReloadObserver {
     }
 
     public void onVectorFrame() {
-        if (!player.universeData.combatActivity.isActive() || !shouldCheck()) {
+        if (!player.vectorData.combatActivity.isActive() || !shouldCheck()) {
             return;
         }
-        player.universeData.resize(sampleWindowSize);
+        player.vectorData.resize(sampleWindowSize);
         if (requesting.get()) return;
-        final AimFrame[] snapshot = player.universeData.pollSnapshot(requestStep);
+        final AimFrame[] snapshot = player.vectorData.pollSnapshot(requestStep);
         if (snapshot == null || !requesting.compareAndSet(false, true)) {
             return;
         }

@@ -28,7 +28,7 @@ import com.g4vrk.react.config.manager.YamlConfigManager;
 import com.g4vrk.react.history.printer.InferenceHistoryPrinter;
 import com.g4vrk.react.listeners.bukkit.CombatListener;
 import com.g4vrk.react.listeners.bukkit.ConnectionListener;
-import com.g4vrk.react.listeners.packet.UniverseListener;
+import com.g4vrk.react.listeners.packet.VectorListener;
 import com.g4vrk.react.inference.aim.InferenceAimProcessor;
 import com.g4vrk.react.inference.server.InferenceServer;
 import com.g4vrk.react.inference.server.settings.InferenceSettingsFactory;
@@ -147,7 +147,7 @@ public class React {
     private ReactPlaceholderExpansion placeholderExpansion;
 
     private CombatListener combatListener;
-    private AimStreamService universeService;
+    private AimStreamService vectorService;
 
     private final Set<PacketListenerCommon> registeredListeners = new ObjectOpenHashSet<>();
 
@@ -297,7 +297,7 @@ public class React {
 
         this.scheduler = schedulaAPI.createScheduler();
 
-        this.universeService = new AimStreamService(playerRegistry, scheduler);
+        this.vectorService = new AimStreamService(playerRegistry, scheduler);
 
         logger.info("Creating Channel system...");
 
@@ -358,7 +358,7 @@ public class React {
 
         logger.info("Registering packet listeners...");
         this.registerPacketListeners(
-                new UniverseListener(playerRegistry, universeService)
+                new VectorListener(playerRegistry, vectorService)
         );
 
         final PluginManager pluginManager = plugin.getServer().getPluginManager();
@@ -473,7 +473,7 @@ public class React {
         for (final ReactPlayer player : this.playerRegistry.all()) {
 
             if (endpointChanged) {
-                player.universeData.clearHistory();
+                player.vectorData.clearHistory();
             }
             player.checkManager.reload();
 

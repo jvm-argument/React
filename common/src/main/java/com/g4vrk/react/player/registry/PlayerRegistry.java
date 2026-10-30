@@ -31,8 +31,8 @@ public final class PlayerRegistry {
         final ReactPlayer removed = players.remove(uuid);
         if (removed != null) {
             removed.clearTransientState();
-            if (React.INSTANCE.getUniverseService() != null) {
-                React.INSTANCE.getUniverseService().removePlayerData(uuid);
+            if (React.INSTANCE.getVectorService() != null) {
+                React.INSTANCE.getVectorService().removePlayerData(uuid);
             }
         }
     }
@@ -55,8 +55,8 @@ public final class PlayerRegistry {
     }
 
     public void clear() {
-        if (React.INSTANCE.getUniverseService() != null) {
-            players.keySet().forEach(React.INSTANCE.getUniverseService()::removePlayerData);
+        if (React.INSTANCE.getVectorService() != null) {
+            players.keySet().forEach(React.INSTANCE.getVectorService()::removePlayerData);
         }
         players.values().forEach(ReactPlayer::clearTransientState);
         players.clear();

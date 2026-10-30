@@ -58,7 +58,7 @@ public final class AimStreamService {
     }
 
     public void onPacket(final @NotNull ReactPlayer player, final @NotNull PacketReceiveEvent event) {
-        onPacket(player.getUniqueId(), player.bukkitPlayer, player.universeData, event);
+        onPacket(player.getUniqueId(), player.bukkitPlayer, player.vectorData, event);
     }
 
     public @NotNull AutoCloseable subscribe(
@@ -155,7 +155,7 @@ public final class AimStreamService {
     }
 
     private boolean ownsData(final UUID uuid, final ReactPlayer player, final AimSession data) {
-        return player == null ? playerData.get(uuid) == data : player.universeData == data;
+        return player == null ? playerData.get(uuid) == data : player.vectorData == data;
     }
 
     private void resolvePendingTarget(final Player bukkitPlayer, final ReactPlayer player, final AimState state) {
