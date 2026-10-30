@@ -176,7 +176,7 @@ public final class InferenceAimProcessor {
                     if (threshold == null || !Double.isFinite(threshold) || threshold < 0 || threshold > 1
                             || !(enabled instanceof Boolean) || !(mode instanceof String)
                             || !((Boolean) enabled ? "enforce" : "observe").equals(mode)) {
-                        throw new IllegalArgumentException("VECTOR response requires a valid deployment mode and threshold");
+                        throw new IllegalArgumentException("Vector response requires a valid deployment mode and threshold");
                     }
                     complete(resultHandler, new InferenceResult(probability, threshold, (Boolean) enabled,
                             readModelPart(result, "model_family"), readModelPart(result, "model_name")));

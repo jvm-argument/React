@@ -27,7 +27,7 @@ public final class FrameCodec {
             final @Nullable String token
     ) {
         if (frames.length == 0) {
-            throw new IllegalArgumentException("VECTOR frames cannot be empty");
+            throw new IllegalArgumentException("Vector frames cannot be empty");
         }
         final float[] features = flatten(frames);
         final FlatBufferBuilder builder = new FlatBufferBuilder(64 + features.length * 4);
@@ -73,7 +73,7 @@ public final class FrameCodec {
         final ByteBuffer buffer = ByteBuffer.wrap(body).order(ByteOrder.LITTLE_ENDIAN);
         buffer.position(4);
         if (Short.toUnsignedInt(buffer.getShort()) != 1) {
-            throw new IllegalArgumentException("VECTOR response item count must be 1");
+            throw new IllegalArgumentException("Vector response item count must be 1");
         }
         final double probability = buffer.getDouble();
         if (!Double.isFinite(probability) || probability < 0 || probability > 1) {

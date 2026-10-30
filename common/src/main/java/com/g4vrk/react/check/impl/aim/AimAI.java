@@ -149,7 +149,7 @@ public final class AimAI extends Check implements ReloadObserver {
             final boolean flagged = Double.isFinite(result.getDecisionThreshold())
                     ? probability >= threshold : probability > threshold;
             if (!result.isEnforcementEnabled()) {
-                if (debug) debugHandler.debug("VECTOR observation: " + probability + ", threshold=" + threshold);
+                if (debug) debugHandler.debug("Vector observation: " + probability + ", threshold=" + threshold);
             } else if (flagged) {
 
                 if (debug) {
